@@ -1,0 +1,14 @@
+{
+  "name": "nadrupee-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=nadrupee",
+    "build": "npm run build --workspace=nadrupee",
+    "start": "npm run start --workspace=nadrupee",
+    "lint": "npm run lint --workspace=nadrupee"
+  }
+}
