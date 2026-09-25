@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IERC20} from "./IERC20.sol";
+import {IERC20Permit} from "./IERC20.sol";
 
 /**
  * @title AUSD
- * @notice Agora USD Stablecoin for Monad Testnet Settlement.
+ * @notice Agora USD Stablecoin for Monad Testnet Settlement with EIP-2612 Permit support.
  * @dev 6 decimals matching Agora / USDC standard. Includes public testnet mint for funding.
  */
-contract AUSD is IERC20 {
+contract AUSD is IERC20Permit {
     string public constant name = "Agora USD";
     string public constant symbol = "AUSD";
     uint8 public constant decimals = 6;
@@ -17,10 +17,25 @@ contract AUSD is IERC20 {
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
 
+    // EIP-2612 Permit state
+    mapping(address => uint256) public override nonces;
+    bytes32 private immutable _INITIAL_DOMAIN_SEPARATOR;
+    uint256 private immutable _INITIAL_CHAIN_ID;
+
+    bytes32 public constant PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
     error InsufficientBalance(address account, uint256 available, uint256 required);
     error InsufficientAllowance(address spender, uint256 available, uint256 required);
     error InvalidRecipient();
     error InvalidSpender();
+    error PermitExpired();
+    error InvalidSigner();
+
+    constructor() {
+        _INITIAL_CHAIN_ID = block.chainid;
+        _INITIAL_DOMAIN_SEPARATOR = _computeDomainSeparator();
+    }
 
     function totalSupply() external view override returns (uint256) {
         return _totalSupply;
@@ -59,6 +74,52 @@ contract AUSD is IERC20 {
         }
         _transfer(from, to, amount);
         return true;
+    }
+
+    /**
+     * @notice EIP-2612 gasless approval via offchain signature.
+     */
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external override {
+        if (block.timestamp > deadline) revert PermitExpired();
+        if (spender == address(0)) revert InvalidSpender();
+
+        bytes32 structHash = keccak256(
+            abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline)
+        );
+
+        bytes32 hash = keccak256(
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR(), structHash)
+        );
+
+        address signer = ecrecover(hash, v, r, s);
+        if (signer == address(0) || signer != owner) revert InvalidSigner();
+
+        _allowances[owner][spender] = value;
+        emit Approval(owner, spender, value);
+    }
+
+    function DOMAIN_SEPARATOR() public view override returns (bytes32) {
+        return block.chainid == _INITIAL_CHAIN_ID ? _INITIAL_DOMAIN_SEPARATOR : _computeDomainSeparator();
+    }
+
+    function _computeDomainSeparator() internal view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                keccak256(bytes(name)),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(this)
+            )
+        );
     }
 
     /**

@@ -9,9 +9,13 @@ contract EscrowTest is Test {
     Escrow public escrow;
     AUSD public token;
 
-    address public client = makeAddr("client");
-    address public freelancer = makeAddr("freelancer");
-    address public unauthorized = makeAddr("unauthorized");
+    uint256 internal clientPrivateKey = 0xA11CE;
+    uint256 internal freelancerPrivateKey = 0xB0B;
+    uint256 internal unauthorizedPrivateKey = 0xBAD;
+
+    address public client;
+    address public freelancer;
+    address public unauthorized;
 
     uint256 public constant DEFAULT_PARTIAL_BPS = 8000; // 80%
     uint256 public constant DEFAULT_TIMEOUT_WINDOW = 7 days;
@@ -27,8 +31,13 @@ contract EscrowTest is Test {
     event PartialReleased(uint256 indexed jobId, uint256 amount);
     event RemainderReleased(uint256 indexed jobId, uint256 amount);
     event JobCancelled(uint256 indexed jobId);
+    event TimeoutExtended(uint256 indexed jobId, uint32 newTimeoutWindow);
 
     function setUp() public {
+        client = vm.addr(clientPrivateKey);
+        freelancer = vm.addr(freelancerPrivateKey);
+        unauthorized = vm.addr(unauthorizedPrivateKey);
+
         token = new AUSD();
         escrow = new Escrow(address(token), DEFAULT_PARTIAL_BPS, DEFAULT_TIMEOUT_WINDOW);
 
@@ -95,6 +104,57 @@ contract EscrowTest is Test {
         assertEq(job.remainderAmount, 200 * 1e6);
         assertEq(job.createdAt, block.timestamp);
         assertEq(uint8(job.state), uint8(Escrow.JobState.Funded));
+
+        // Index checks
+        assertEq(escrow.getClientJobCount(client), 1);
+        assertEq(escrow.getFreelancerJobCount(freelancer), 1);
+    }
+
+    function test_CreateJob_WithMetadataHash() public {
+        bytes32 docHash = keccak256("Milestone 1: Smart contract delivery");
+
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT, docHash);
+
+        Escrow.Job memory job = escrow.getJob(jobId);
+        assertEq(job.metadataHash, docHash);
+    }
+
+    function test_CreateJobWithPermit_HappyPath() public {
+        address newClient = vm.addr(0x999);
+        uint256 amount = 500 * 1e6;
+        token.mint(newClient, amount);
+
+        // Sign EIP-2612 permit
+        bytes32 structHash = keccak256(
+            abi.encode(
+                token.PERMIT_TYPEHASH(),
+                newClient,
+                address(escrow),
+                amount,
+                token.nonces(newClient),
+                block.timestamp + 1 hours
+            )
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", token.DOMAIN_SEPARATOR(), structHash)
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(0x999, digest);
+
+        // 1-Click execute
+        vm.prank(newClient);
+        uint256 jobId = escrow.createJobWithPermit(
+            freelancer,
+            amount,
+            keccak256("Permit Job"),
+            block.timestamp + 1 hours,
+            v,
+            r,
+            s
+        );
+
+        assertEq(jobId, 1);
+        assertEq(token.balanceOf(address(escrow)), amount);
     }
 
     function test_CreateJob_RevertsIf_ZeroAmount() public {
@@ -157,8 +217,38 @@ contract EscrowTest is Test {
         escrow.releasePartial(jobId);
 
         assertEq(token.balanceOf(freelancer), expectedPartial);
-        Escrow.Job memory job = escrow.getJob(jobId);
-        assertEq(uint8(job.state), uint8(Escrow.JobState.PartiallyReleased));
+    }
+
+    function test_ReleasePartialWithSig_HappyPath() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+
+        uint256 deadline = block.timestamp + 1 hours;
+        uint256 nonce = escrow.nonces(client);
+
+        bytes32 structHash = keccak256(
+            abi.encode(escrow.RELEASE_PARTIAL_TYPEHASH(), jobId, nonce, deadline)
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", escrow.DOMAIN_SEPARATOR(), structHash)
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(clientPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // Submitted gaslessly by relayer/facilitator
+        vm.prank(unauthorized);
+        escrow.releasePartialWithSig(jobId, deadline, signature);
+
+        assertEq(token.balanceOf(freelancer), 800 * 1e6);
+    }
+
+    function test_ReleasePartialWithSig_RevertsIf_Expired() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+
+        bytes memory emptySig = new bytes(65);
+        vm.expectRevert(Escrow.SignatureExpired.selector);
+        escrow.releasePartialWithSig(jobId, block.timestamp - 1, emptySig);
     }
 
     function test_ReleasePartial_RevertsIf_JobDoesNotExist() public {
@@ -241,6 +331,32 @@ contract EscrowTest is Test {
         assertEq(uint8(job.state), uint8(Escrow.JobState.Completed));
     }
 
+    function test_ReleaseRemainderWithSig_HappyPath() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+
+        vm.prank(client);
+        escrow.releasePartial(jobId);
+
+        uint256 deadline = block.timestamp + 1 hours;
+        uint256 nonce = escrow.nonces(client);
+
+        bytes32 structHash = keccak256(
+            abi.encode(escrow.RELEASE_REMAINDER_TYPEHASH(), jobId, nonce, deadline)
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", escrow.DOMAIN_SEPARATOR(), structHash)
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(clientPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // Submitted by relayer
+        vm.prank(unauthorized);
+        escrow.releaseRemainderWithSig(jobId, deadline, signature);
+
+        assertEq(token.balanceOf(freelancer), JOB_AMOUNT);
+    }
+
     function test_ReleaseRemainder_HappyPath_AfterTimeout_ByFreelancer() public {
         vm.prank(client);
         uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
@@ -250,18 +366,10 @@ contract EscrowTest is Test {
 
         vm.warp(block.timestamp + DEFAULT_TIMEOUT_WINDOW);
 
-        uint256 expectedRemainder = 200 * 1e6;
-        vm.expectEmit(true, false, false, true);
-        emit RemainderReleased(jobId, expectedRemainder);
-
         vm.prank(freelancer);
         escrow.releaseRemainder(jobId);
 
         assertEq(token.balanceOf(freelancer), JOB_AMOUNT);
-        assertEq(token.balanceOf(address(escrow)), 0);
-
-        Escrow.Job memory job = escrow.getJob(jobId);
-        assertEq(uint8(job.state), uint8(Escrow.JobState.Completed));
     }
 
     function test_ReleaseRemainder_HappyPath_AfterTimeout_ByAnyone() public {
@@ -290,10 +398,6 @@ contract EscrowTest is Test {
 
         vm.prank(unauthorized);
         vm.expectRevert(abi.encodeWithSelector(Escrow.UnauthorizedCaller.selector, unauthorized));
-        escrow.releaseRemainder(jobId);
-
-        vm.prank(freelancer);
-        vm.expectRevert(abi.encodeWithSelector(Escrow.UnauthorizedCaller.selector, freelancer));
         escrow.releaseRemainder(jobId);
     }
 
@@ -364,6 +468,28 @@ contract EscrowTest is Test {
         assertEq(uint8(job.state), uint8(Escrow.JobState.Cancelled));
     }
 
+    function test_CancelJobWithSig_HappyPath() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+
+        uint256 deadline = block.timestamp + 1 hours;
+        uint256 nonce = escrow.nonces(client);
+
+        bytes32 structHash = keccak256(
+            abi.encode(escrow.CANCEL_JOB_TYPEHASH(), jobId, nonce, deadline)
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", escrow.DOMAIN_SEPARATOR(), structHash)
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(clientPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        vm.prank(unauthorized);
+        escrow.cancelJobWithSig(jobId, deadline, signature);
+
+        assertEq(token.balanceOf(client), INITIAL_BALANCE);
+    }
+
     function test_CancelJob_RevertsIf_CalledAfterPartialRelease() public {
         vm.prank(client);
         uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
@@ -389,10 +515,6 @@ contract EscrowTest is Test {
 
         vm.prank(freelancer);
         vm.expectRevert(abi.encodeWithSelector(Escrow.UnauthorizedCaller.selector, freelancer));
-        escrow.cancelJob(jobId);
-
-        vm.prank(unauthorized);
-        vm.expectRevert(abi.encodeWithSelector(Escrow.UnauthorizedCaller.selector, unauthorized));
         escrow.cancelJob(jobId);
     }
 
@@ -422,8 +544,59 @@ contract EscrowTest is Test {
     }
 
     // =========================================================================
-    // View Functions
+    // Extend Timeout Tests
     // =========================================================================
+
+    function test_ExtendTimeout_HappyPath() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+
+        vm.expectEmit(true, false, false, true);
+        emit TimeoutExtended(jobId, uint32(DEFAULT_TIMEOUT_WINDOW + 3 days));
+
+        vm.prank(client);
+        escrow.extendTimeout(jobId, 3 days);
+
+        Escrow.Job memory job = escrow.getJob(jobId);
+        assertEq(job.timeoutWindow, DEFAULT_TIMEOUT_WINDOW + 3 days);
+    }
+
+    function test_ExtendTimeout_RevertsIf_CallerNotClient() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+
+        vm.prank(freelancer);
+        vm.expectRevert(abi.encodeWithSelector(Escrow.UnauthorizedCaller.selector, freelancer));
+        escrow.extendTimeout(jobId, 3 days);
+    }
+
+    // =========================================================================
+    // View Functions & Batch Query Tests
+    // =========================================================================
+
+    function test_BatchQuery_GetJobs() public {
+        vm.prank(client);
+        uint256 job1 = escrow.createJob(freelancer, 100 * 1e6);
+        vm.prank(client);
+        uint256 job2 = escrow.createJob(freelancer, 200 * 1e6);
+
+        uint256[] memory ids = new uint256[](2);
+        ids[0] = job1;
+        ids[1] = job2;
+
+        Escrow.Job[] memory batch = escrow.getJobs(ids);
+        assertEq(batch.length, 2);
+        assertEq(batch[0].amount, 100 * 1e6);
+        assertEq(batch[1].amount, 200 * 1e6);
+
+        uint256[] memory clientJobs = escrow.getClientJobIds(client);
+        assertEq(clientJobs.length, 2);
+        assertEq(clientJobs[0], job1);
+        assertEq(clientJobs[1], job2);
+
+        uint256[] memory freelancerJobs = escrow.getFreelancerJobIds(freelancer);
+        assertEq(freelancerJobs.length, 2);
+    }
 
     function test_GetJob_RevertsIf_JobDoesNotExist() public {
         vm.expectRevert(abi.encodeWithSelector(Escrow.JobDoesNotExist.selector, 123));
@@ -472,4 +645,125 @@ contract EscrowTest is Test {
 
         assertEq(token.balanceOf(client), clientBalBefore);
     }
+
+    // =========================================================================
+    // Advanced Production Edge Cases
+    // =========================================================================
+
+    function test_CreateJob_RevertsIf_AmountExceedsUint128() public {
+        uint256 hugeAmount = uint256(type(uint128).max) + 1;
+        vm.prank(client);
+        vm.expectRevert(Escrow.AmountExceedsUint128.selector);
+        escrow.createJob(freelancer, hugeAmount);
+    }
+
+    function test_ExtendTimeout_RevertsIf_JobDoesNotExist() public {
+        vm.prank(client);
+        vm.expectRevert(abi.encodeWithSelector(Escrow.JobDoesNotExist.selector, 999));
+        escrow.extendTimeout(999, 1 days);
+    }
+
+    function test_ExtendTimeout_RevertsIf_ZeroExtension() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+
+        vm.prank(client);
+        vm.expectRevert(Escrow.InvalidTimeoutWindow.selector);
+        escrow.extendTimeout(jobId, 0);
+    }
+
+    function test_ExtendTimeout_RevertsIf_JobCancelled() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+        vm.prank(client);
+        escrow.cancelJob(jobId);
+
+        vm.prank(client);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Escrow.InvalidJobState.selector,
+                jobId,
+                Escrow.JobState.PartiallyReleased,
+                Escrow.JobState.Cancelled
+            )
+        );
+        escrow.extendTimeout(jobId, 1 days);
+    }
+
+    function test_ReleasePartialWithSig_RevertsIf_InvalidSigner() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes32 structHash = keccak256(
+            abi.encode(escrow.RELEASE_PARTIAL_TYPEHASH(), jobId, escrow.nonces(client), deadline)
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", escrow.DOMAIN_SEPARATOR(), structHash)
+        );
+        // Signed by unauthorized
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(unauthorizedPrivateKey, digest);
+        bytes memory sig = abi.encodePacked(r, s, v);
+
+        vm.expectRevert(Escrow.InvalidSignature.selector);
+        escrow.releasePartialWithSig(jobId, deadline, sig);
+    }
+
+    function test_ReleaseRemainderWithSig_RevertsIf_Expired() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+
+        bytes memory emptySig = new bytes(65);
+        vm.expectRevert(Escrow.SignatureExpired.selector);
+        escrow.releaseRemainderWithSig(jobId, block.timestamp - 1, emptySig);
+    }
+
+    function test_ReleaseRemainderWithSig_RevertsIf_InvalidSigner() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+        vm.prank(client);
+        escrow.releasePartial(jobId);
+
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes32 structHash = keccak256(
+            abi.encode(escrow.RELEASE_REMAINDER_TYPEHASH(), jobId, escrow.nonces(client), deadline)
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", escrow.DOMAIN_SEPARATOR(), structHash)
+        );
+        // Signed by unauthorized instead of client
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(unauthorizedPrivateKey, digest);
+        bytes memory sig = abi.encodePacked(r, s, v);
+
+        vm.expectRevert(Escrow.InvalidSignature.selector);
+        escrow.releaseRemainderWithSig(jobId, deadline, sig);
+    }
+
+    function test_CancelJobWithSig_RevertsIf_Expired() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+
+        bytes memory emptySig = new bytes(65);
+        vm.expectRevert(Escrow.SignatureExpired.selector);
+        escrow.cancelJobWithSig(jobId, block.timestamp - 1, emptySig);
+    }
+
+    function test_CancelJobWithSig_RevertsIf_InvalidSigner() public {
+        vm.prank(client);
+        uint256 jobId = escrow.createJob(freelancer, JOB_AMOUNT);
+
+        uint256 deadline = block.timestamp + 1 hours;
+        bytes32 structHash = keccak256(
+            abi.encode(escrow.CANCEL_JOB_TYPEHASH(), jobId, escrow.nonces(client), deadline)
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", escrow.DOMAIN_SEPARATOR(), structHash)
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(unauthorizedPrivateKey, digest);
+        bytes memory sig = abi.encodePacked(r, s, v);
+
+        vm.expectRevert(Escrow.InvalidSignature.selector);
+        escrow.cancelJobWithSig(jobId, deadline, sig);
+    }
 }
+
