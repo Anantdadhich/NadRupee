@@ -1,22 +1,27 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 import { AccountProvider } from "@/context/AccountContext";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const manrope = Manrope({
+  variable: "--font-sans",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "NadRupee | Instant Escrow Payments on Monad",
+  title: "NadRupee — Instant Escrow Payments for Indian Freelancers",
   description:
-    "Passkey-powered freelance escrow settlement with instant payouts on Monad testnet.",
+    "Instant, escrow-backed payments for Indian freelancers working with global clients — settled on Monad, cashed out to your bank.",
+  openGraph: {
+    title: "NadRupee — Instant Escrow Payments for Indian Freelancers",
+    description: "Get paid the moment work is funded. No wallet required.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({
@@ -25,11 +30,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
-    >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+    <html lang="en" className={manrope.variable}>
+      <body>
         <AccountProvider>{children}</AccountProvider>
       </body>
     </html>
