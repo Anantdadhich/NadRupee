@@ -23,6 +23,14 @@ export interface RelayResult {
  * Crucial: Must be fetched immediately prior to signature creation.
  */
 export async function getClientNonce(clientAddress: Address): Promise<bigint> {
+  if (
+    !ESCROW_CONTRACT_ADDRESS ||
+    ESCROW_CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000"
+  ) {
+    throw new Error(
+      "Escrow contract address is not configured. Please deploy Escrow.sol to Monad testnet and set NEXT_PUBLIC_ESCROW_ADDRESS in .env.local."
+    );
+  }
   return publicClient.readContract({
     address: ESCROW_CONTRACT_ADDRESS,
     abi: escrowAbi,

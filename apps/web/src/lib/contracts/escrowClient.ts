@@ -5,6 +5,7 @@ import {
   formatUnits,
   encodePacked,
   keccak256,
+  parseEventLogs,
 } from "viem";
 import { publicClient, monadTestnet } from "@/lib/monad/chain";
 import {
@@ -31,6 +32,8 @@ export interface OnChainJobDetails {
   createdAt: bigint;
   timeoutWindow: number;
   metadataHash: `0x${string}`;
+  txHash?: string;
+  deliverableTitle?: string;
 }
 
 /**
@@ -137,21 +140,33 @@ export async function getJobsForAccount(
       args: [jobIds as bigint[]],
     });
 
-    return jobs.map((raw, idx) => ({
-      jobId: jobIds[idx],
-      client: raw.client,
-      freelancer: raw.freelancer,
-      amount: raw.amount,
-      amountFormatted: formatUnits(raw.amount, AUSD_DECIMALS),
-      partialAmount: raw.partialAmount,
-      partialAmountFormatted: formatUnits(raw.partialAmount, AUSD_DECIMALS),
-      remainderAmount: raw.remainderAmount,
-      remainderAmountFormatted: formatUnits(raw.remainderAmount, AUSD_DECIMALS),
-      state: raw.state as JobState,
-      createdAt: raw.createdAt,
-      timeoutWindow: raw.timeoutWindow,
-      metadataHash: raw.metadataHash,
-    }));
+    return jobs.map((raw, idx) => {
+      const jId = jobIds[idx];
+      let storedTx: string | undefined;
+      let storedTitle: string | undefined;
+      if (typeof window !== "undefined") {
+        storedTx = localStorage.getItem(`nadrupee_job_tx_${jId.toString()}`) || undefined;
+        storedTitle = localStorage.getItem(`nadrupee_job_title_${jId.toString()}`) || undefined;
+      }
+
+      return {
+        jobId: jId,
+        client: raw.client,
+        freelancer: raw.freelancer,
+        amount: raw.amount,
+        amountFormatted: formatUnits(raw.amount, AUSD_DECIMALS),
+        partialAmount: raw.partialAmount,
+        partialAmountFormatted: formatUnits(raw.partialAmount, AUSD_DECIMALS),
+        remainderAmount: raw.remainderAmount,
+        remainderAmountFormatted: formatUnits(raw.remainderAmount, AUSD_DECIMALS),
+        state: raw.state as JobState,
+        createdAt: raw.createdAt,
+        timeoutWindow: raw.timeoutWindow,
+        metadataHash: raw.metadataHash,
+        txHash: storedTx,
+        deliverableTitle: storedTitle,
+      };
+    });
   } catch (error) {
     console.warn(`[Escrow] Failed to query ${role} jobs:`, error);
     return [];
@@ -171,6 +186,15 @@ export async function createOnChainJob(params: {
 
   if (!walletClient.account) {
     throw new Error("Wallet account is not connected.");
+  }
+
+  if (
+    !ESCROW_CONTRACT_ADDRESS ||
+    ESCROW_CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000"
+  ) {
+    throw new Error(
+      "Escrow contract address is not configured. Please deploy Escrow.sol to Monad testnet and set NEXT_PUBLIC_ESCROW_ADDRESS in .env.local."
+    );
   }
 
   const clientAddress = walletClient.account.address;
@@ -210,5 +234,56 @@ export async function createOnChainJob(params: {
 
   const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
 
-  return { txHash, jobId: undefined };
+  let createdJobId: bigint | undefined;
+  try {
+    const events = parseEventLogs({
+      abi: escrowAbi,
+      eventName: "JobCreated",
+      logs: receipt.logs,
+    });
+    if (events.length > 0 && events[0].args?.jobId !== undefined) {
+      createdJobId = events[0].args.jobId;
+    }
+  } catch (err) {
+    console.warn("Could not parse JobCreated event logs:", err);
+  }
+
+  // Persist txHash & title for this job in localStorage for explorer navigation
+  if (typeof window !== "undefined") {
+    if (createdJobId !== undefined) {
+      localStorage.setItem(`nadrupee_job_tx_${createdJobId.toString()}`, txHash);
+      localStorage.setItem(`nadrupee_job_title_${createdJobId.toString()}`, deliverableTitle);
+    }
+    // Also record in client transaction history
+    try {
+      const historyKey = `nadrupee_history_${clientAddress.toLowerCase()}`;
+      const existing = JSON.parse(localStorage.getItem(historyKey) || "[]");
+      existing.unshift({
+        type: "Job funded",
+        jobId: createdJobId ? createdJobId.toString() : "Pending",
+        amountUsd,
+        deliverable: deliverableTitle,
+        txHash,
+        timestamp: new Date().toUTCString(),
+      });
+      localStorage.setItem(historyKey, JSON.stringify(existing.slice(0, 50)));
+
+      // Also record in freelancer transaction history
+      const freelancerHistoryKey = `nadrupee_history_${freelancerAddress.toLowerCase()}`;
+      const freelancerExisting = JSON.parse(localStorage.getItem(freelancerHistoryKey) || "[]");
+      freelancerExisting.unshift({
+        type: "Job funded",
+        jobId: createdJobId ? createdJobId.toString() : "New Contract",
+        amountUsd,
+        deliverable: deliverableTitle,
+        txHash,
+        timestamp: new Date().toUTCString(),
+      });
+      localStorage.setItem(freelancerHistoryKey, JSON.stringify(freelancerExisting.slice(0, 50)));
+    } catch (e) {
+      console.warn("Failed to cache history in localStorage:", e);
+    }
+  }
+
+  return { txHash, jobId: createdJobId };
 }
