@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { useAccount } from "@/hooks/useAccount";
 import { recoverMessageAddress } from "viem";
 import {
@@ -20,6 +21,9 @@ import {
   Coins,
   ArrowRight,
   ShieldAlert,
+  Sparkles,
+  X,
+  Menu,
 } from "lucide-react";
 import {
   relayReleasePartial,
@@ -32,6 +36,17 @@ import {
   ESCROW_CONTRACT_ADDRESS,
   AUSD_CONTRACT_ADDRESS,
 } from "@/lib/contracts/config";
+
+const Mark = ({ compact = false }: { compact?: boolean }) => (
+  <span className="brand-lockup" aria-label="NadRupee">
+    <span className="brand-mark">
+      <i />
+      <i />
+      <i />
+    </span>
+    {!compact && <b>NadRupee</b>}
+  </span>
+);
 
 interface RelayerHealthData {
   status: "healthy" | "low_balance" | "unconfigured" | "error" | "rpc_error";
@@ -71,6 +86,7 @@ export default function AuthTestPage() {
     clearError,
   } = useAccount();
 
+  const [menuOpen, setMenuOpen] = useState(false);
   const [username, setUsername] = useState("freelancer@nadrupee");
   const [testMessage, setTestMessage] = useState(
     "Hello Monad! Signing with Mera Passkey on NadRupee."
@@ -158,9 +174,9 @@ export default function AuthTestPage() {
         signature: sig,
       });
       setRecoveredAddress(recovered);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to sign message";
-      setSignError(msg);
+    } catch (err: any) {
+      console.error("Sign message failed:", err);
+      setSignError(err?.message || "Failed to sign message with passkey");
     } finally {
       setIsSigning(false);
     }
@@ -171,27 +187,27 @@ export default function AuthTestPage() {
     try {
       const nonce = await getClientNonce(address);
       setClientNonce(nonce.toString());
-    } catch (err: any) {
-      setClientNonce("0 (contract uncalled)");
+    } catch (e: any) {
+      console.error("Failed to fetch nonce:", e);
     }
   };
 
-  const handleRelayAction = async (actionType: "partial" | "remainder" | "cancel") => {
+  const handleRelayAction = async (action: "partial" | "remainder" | "cancel") => {
     if (!walletClient || !address) return;
     setIsRelaying(true);
     setRelayResult(null);
 
     try {
-      const jobIdBigInt = BigInt(testJobId || "1");
+      const jobIdBigInt = BigInt(testJobId);
       let res: RelayResult;
 
-      if (actionType === "partial") {
+      if (action === "partial") {
         res = await relayReleasePartial({
           walletClient,
           jobId: jobIdBigInt,
           clientAddress: address,
         });
-      } else if (actionType === "remainder") {
+      } else if (action === "remainder") {
         res = await relayReleaseRemainder({
           walletClient,
           jobId: jobIdBigInt,
@@ -218,562 +234,411 @@ export default function AuthTestPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col items-center justify-center p-4 sm:p-8 font-sans">
-      <div className="w-full max-w-3xl bg-neutral-900 border border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-violet-950/60 border border-violet-800/50 rounded-xl text-violet-400">
-              <Fingerprint className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                NadRupee Protocol Lab
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-violet-900/50 border border-violet-700/60 text-violet-300">
-                  Mera Passkey & Relayer
-                </span>
-              </h1>
-              <p className="text-xs text-neutral-400">
-                WebAuthn PRF → BIP-44 Monad EOA + EIP-712 Gasless Settlement
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-neutral-800 border border-neutral-700 text-neutral-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Monad Testnet (10143)
-            </span>
-          </div>
+    <div className="page-container">
+      {/* 1. FLOATING NAVIGATION BAR */}
+      <nav className="nav-shell" aria-label="Main navigation">
+        <div className="desktop-links">
+          <Link href="/">Overview</Link>
+          <Link href="/freelancer">Freelancer Portal</Link>
+          <Link href="/client">Client Portal</Link>
+          <Link href="/auth-test" style={{ color: "var(--paper)", fontWeight: 600 }}>
+            Protocol Lab
+          </Link>
         </div>
 
-        {/* Protocol Network Status Grid: Relayer Health + Agora Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Relayer Wallet Status */}
-          <div className="bg-neutral-950/70 border border-neutral-800/80 rounded-xl p-4 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                Gasless Relayer Health
-              </span>
+        <Link href="/" className="nav-brand">
+          <Mark />
+        </Link>
+
+        <div className="desktop-links nav-actions">
+          {isConnected ? (
+            <div className="auth-status">
+              <span className="auth-dot" />
+              <span>{address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "Connected"}</span>
+              <button onClick={signOut} className="auth-signout" title="Sign out">
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => signIn()}
+              disabled={isConnecting}
+              className="signin"
+            >
+              {isConnecting ? "Evaluating..." : "Sign in"}
+            </button>
+          )}
+          <Link href="/freelancer" className="action action-dark">
+            Freelancer Portal
+          </Link>
+        </div>
+
+        <button
+          className="menu-button"
+          aria-label="Toggle navigation"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-navigation"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {menuOpen ? <X /> : <Menu />}
+        </button>
+      </nav>
+
+      {menuOpen && (
+        <div className="mobile-menu" id="mobile-navigation">
+          <Link href="/" onClick={() => setMenuOpen(false)}>Overview</Link>
+          <Link href="/freelancer" onClick={() => setMenuOpen(false)}>Freelancer Portal</Link>
+          <Link href="/client" onClick={() => setMenuOpen(false)}>Client Portal</Link>
+          <Link href="/auth-test" onClick={() => setMenuOpen(false)}>Protocol Lab</Link>
+        </div>
+      )}
+
+      {/* 2. MAIN CONTENT */}
+      <main className="dashboard-shell">
+        <div className="portal-hero">
+          <div className="eyebrow dark-eyebrow">
+            <Sparkles size={12} /> NADRUPEE · PROTOCOL LAB & DIAGNOSTICS <span>MONAD TESTNET</span>
+          </div>
+          <h1>
+            <em>Protocol Diagnostics</em>
+            <br />
+            & Gasless Execution
+          </h1>
+          <p>
+            Verify WebAuthn PRF passkey derivation, Agora AUSD testnet metrics, and gasless EIP-712 relayer execution.
+          </p>
+        </div>
+
+        {/* Status Cards: Relayer Health + Agora Metrics */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px", marginBottom: "32px" }}>
+          {/* Relayer Card */}
+          <div className="portal-card">
+            <div className="portal-card-header">
+              <span className="portal-label">GASLESS RELAYER HEALTH</span>
               <button
                 onClick={fetchRelayerHealth}
                 disabled={isCheckingRelayer}
-                className="text-[11px] text-neutral-400 hover:text-neutral-200 flex items-center gap-1 transition"
+                style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "11px" }}
               >
-                <RefreshCw
-                  className={`w-3 h-3 ${isCheckingRelayer ? "animate-spin" : ""}`}
-                />
-                Refresh
+                <RefreshCw size={12} className={isCheckingRelayer ? "animate-spin" : ""} /> Refresh
               </button>
             </div>
 
             {relayerHealth ? (
-              <div className="space-y-1.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">Status:</span>
-                  <span
-                    className={`font-semibold capitalize px-2 py-0.5 rounded text-[11px] ${
-                      relayerHealth.status === "healthy"
-                        ? "bg-emerald-950/60 text-emerald-300 border border-emerald-800/60"
-                        : relayerHealth.status === "low_balance"
-                        ? "bg-amber-950/60 text-amber-300 border border-amber-800/60"
-                        : "bg-rose-950/60 text-rose-300 border border-rose-800/60"
-                    }`}
-                  >
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--muted-foreground)" }}>Status:</span>
+                  <span className={relayerHealth.status === "healthy" ? "badge-mint" : "badge-danger"}>
                     {relayerHealth.status}
                   </span>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">Relayer Address:</span>
-                  <span className="font-mono text-neutral-300 text-[11px]">
-                    {relayerHealth.address
-                      ? `${relayerHealth.address.slice(0, 8)}...${relayerHealth.address.slice(-6)}`
-                      : "Not set"}
-                  </span>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--muted-foreground)" }}>Relayer Address:</span>
+                  <code style={{ color: "var(--paper)" }}>
+                    {relayerHealth.address ? `${relayerHealth.address.slice(0, 8)}...${relayerHealth.address.slice(-6)}` : "Not set"}
+                  </code>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">Sponsorship Balance:</span>
-                  <span className="font-mono font-medium text-emerald-400">
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--muted-foreground)" }}>Sponsorship Balance:</span>
+                  <strong style={{ color: "var(--mint-bright)" }}>
                     {parseFloat(relayerHealth.balanceMon).toFixed(4)} MON
-                  </span>
+                  </strong>
                 </div>
-
                 {relayerHealth.isLowBalance && (
-                  <p className="text-[10px] text-amber-400/90 bg-amber-950/30 p-1.5 rounded border border-amber-800/30">
+                  <div style={{ fontSize: "11px", color: "oklch(.75 .18 15)", marginTop: "4px" }}>
                     {relayerHealth.message}
-                  </p>
+                  </div>
                 )}
               </div>
             ) : (
-              <div className="text-xs text-neutral-500 flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Querying relayer node...
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--muted-foreground)", fontSize: "12px" }}>
+                <Loader2 size={14} className="animate-spin" /> Querying relayer node...
               </div>
             )}
           </div>
 
-          {/* Agora AUSD Live Metrics */}
-          <div className="bg-neutral-950/70 border border-neutral-800/80 rounded-xl p-4 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
-                <Coins className="w-3.5 h-3.5 text-blue-400" />
-                Agora AUSD Stablecoin
-              </span>
+          {/* Agora Metrics Card */}
+          <div className="portal-card">
+            <div className="portal-card-header">
+              <span className="portal-label">AGORA AUSD METRICS</span>
               <button
                 onClick={fetchAgora}
                 disabled={isFetchingAgora}
-                className="text-[11px] text-neutral-400 hover:text-neutral-200 flex items-center gap-1 transition"
+                style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "11px" }}
               >
-                <RefreshCw
-                  className={`w-3 h-3 ${isFetchingAgora ? "animate-spin" : ""}`}
-                />
-                Live API
+                <RefreshCw size={12} className={isFetchingAgora ? "animate-spin" : ""} /> Live API
               </button>
             </div>
 
             {agoraMetrics ? (
-              <div className="space-y-1.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">Monad AUSD Supply:</span>
-                  <span className="font-mono font-semibold text-blue-300">
-                    ${Number(agoraMetrics.monad.circulatingSupply).toLocaleString(
-                      undefined,
-                      { maximumFractionDigits: 0 }
-                    )}
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--muted-foreground)" }}>Monad AUSD Supply:</span>
+                  <strong style={{ color: "var(--mint)" }}>
+                    ${Number(agoraMetrics.monad.circulatingSupply).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </strong>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--muted-foreground)" }}>Total Agora Volume:</span>
+                  <span style={{ color: "var(--paper)" }}>
+                    ${Number(agoraMetrics.totalCirculatingSupply).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </span>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">Total Agora Volume:</span>
-                  <span className="font-mono text-neutral-300">
-                    ${Number(agoraMetrics.totalCirculatingSupply).toLocaleString(
-                      undefined,
-                      { maximumFractionDigits: 0 }
-                    )}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-neutral-500">Decimals & Permit:</span>
-                  <span className="text-neutral-400 font-mono">
-                    6 Decimals • EIP-2612
-                  </span>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--muted-foreground)" }}>Decimals & Permit:</span>
+                  <span style={{ color: "var(--paper)" }}>6 Decimals · EIP-2612</span>
                 </div>
               </div>
             ) : (
-              <div className="text-xs text-neutral-500 flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Querying Agora API...
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--muted-foreground)", fontSize: "12px" }}>
+                <Loader2 size={14} className="animate-spin" /> Querying Agora API...
               </div>
             )}
           </div>
         </div>
 
-        {/* PRF_UNAVAILABLE Critical Alert Banner */}
+        {/* PRF_UNAVAILABLE Warning Banner if applicable */}
         {isPrfUnavailable && (
-          <div className="p-4 rounded-xl bg-amber-950/70 border border-amber-600/70 text-amber-200 text-sm space-y-3">
-            <div className="flex items-start gap-2.5">
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="font-semibold text-amber-300">
-                  PRF_UNAVAILABLE Detected
-                </p>
-                <p className="text-xs leading-relaxed text-amber-200/90">
-                  The WebAuthn PRF (Pseudo-Random Function) extension is required
-                  to derive a deterministic EOA from your passkey, but is not
-                  supported or permitted by your current browser profile.
-                </p>
+          <div style={{ padding: "16px 20px", borderRadius: "14px", marginBottom: "24px", background: "color-mix(in oklab, oklch(.66 .2 15) 12%, transparent)", border: "1px solid color-mix(in oklab, oklch(.66 .2 15) 30%, transparent)", color: "var(--paper)", fontSize: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 600, color: "oklch(.75 .18 15)" }}>
+              <AlertTriangle size={15} /> PRF_UNAVAILABLE Detected
+            </div>
+            <p style={{ margin: "6px 0 0", color: "color-mix(in oklab, var(--paper) 75%, transparent)" }}>
+              The WebAuthn PRF extension is required to derive a deterministic Monad EOA from your passkey. Please ensure your browser supports WebAuthn PRF (e.g. Chrome with Google Password Manager, or macOS Safari Touch ID).
+            </p>
+          </div>
+        )}
+
+        {/* Passkey Authentication Section */}
+        <section className="portal-card" style={{ marginBottom: "32px" }}>
+          <div className="portal-card-header">
+            <div>
+              <h2 style={{ fontSize: "18px", fontWeight: 500, margin: 0 }}>
+                <em>Passkey Keypair Derivation</em>
+              </h2>
+              <p style={{ margin: "4px 0 0", fontSize: "11px", color: "var(--muted-foreground)" }}>
+                Deterministic BIP-44 key derivation from WebAuthn PRF secrets via Mera SDK.
+              </p>
+            </div>
+          </div>
+
+          {!isConnected ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "480px" }}>
+              <div>
+                <label className="portal-label">IDENTIFIER / USERNAME</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="freelancer@nadrupee"
+                  className="portal-input"
+                />
               </div>
-            </div>
-            <div className="bg-amber-900/30 rounded-lg p-3 text-xs space-y-1.5 border border-amber-800/50 font-mono">
-              <p className="font-semibold text-amber-300 font-sans">
-                Troubleshooting Checklist:
-              </p>
-              <ul className="list-disc pl-4 space-y-1 text-amber-200/80">
-                <li>
-                  <strong className="text-amber-100">Desktop Chrome:</strong>{" "}
-                  Passkeys must be saved to <em>Google Password Manager</em>, NOT
-                  the local macOS device profile.
-                </li>
-                <li>
-                  <strong className="text-amber-100">macOS Safari:</strong>{" "}
-                  Supports Touch ID with iCloud Keychain.
-                </li>
-                <li>
-                  <strong className="text-amber-100">Security Keys:</strong> Use
-                  a FIDO2 hardware authenticator (YubiKey 5 series).
-                </li>
-              </ul>
-            </div>
-          </div>
-        )}
 
-        {/* General Error Banner */}
-        {error && !isPrfUnavailable && (
-          <div className="p-3.5 rounded-xl bg-rose-950/60 border border-rose-800/60 text-rose-200 text-sm flex items-start justify-between gap-2">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <p className="text-xs font-mono">{error}</p>
-            </div>
-            <button
-              onClick={clearError}
-              className="text-xs text-rose-400 hover:text-rose-200 shrink-0 underline"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
-        {/* Authentication State */}
-        {!isConnected ? (
-          <div className="space-y-5 bg-neutral-950/60 border border-neutral-800/80 rounded-xl p-5">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-300">
-                Freelancer Identifier / Email (for passkey metadata)
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="freelancer@nadrupee"
-                className="w-full bg-neutral-900 border border-neutral-700/80 rounded-lg px-3.5 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-violet-500 transition-colors"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <button
-                onClick={() => signUp(username)}
-                disabled={isConnecting}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 active:bg-violet-700 disabled:opacity-50 text-white font-medium text-sm transition shadow-lg shadow-violet-950/40"
-              >
-                {isConnecting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Creating Passkey...
-                  </>
-                ) : (
-                  <>
-                    <KeyRound className="w-4 h-4" />
-                    Create Passkey (Sign Up)
-                  </>
-                )}
-              </button>
-
-              <button
-                onClick={() => signIn()}
-                disabled={isConnecting}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 active:bg-neutral-800 disabled:opacity-50 text-neutral-200 border border-neutral-700 font-medium text-sm transition"
-              >
-                {isConnecting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Evaluating PRF...
-                  </>
-                ) : (
-                  <>
-                    <Fingerprint className="w-4 h-4 text-violet-400" />
-                    Sign In with Passkey
-                  </>
-                )}
-              </button>
-            </div>
-
-            {storedCredentialId && (
-              <p className="text-[11px] text-neutral-500 flex items-center gap-1.5 pt-1">
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
-                Previous passkey detected:{" "}
-                <span className="font-mono text-neutral-400">
-                  {storedCredentialId.slice(0, 16)}...
-                </span>
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Account Info Box */}
-            <div className="bg-neutral-950/70 border border-neutral-800 rounded-xl p-4 sm:p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  Authenticated via Mera Passkey
-                </span>
+              <div style={{ display: "flex", gap: "12px" }}>
                 <button
-                  onClick={signOut}
-                  className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-rose-400 transition"
+                  onClick={() => signUp(username)}
+                  disabled={isConnecting}
+                  className="action"
+                  style={{ flex: 1 }}
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  {isConnecting ? "Creating..." : "Create Passkey"}
+                </button>
+                <button
+                  onClick={() => signIn()}
+                  disabled={isConnecting}
+                  className="action action-dark"
+                  style={{ flex: 1 }}
+                >
+                  {isConnecting ? "Evaluating..." : "Sign In with Passkey"}
+                </button>
+              </div>
+
+              {storedCredentialId && (
+                <div style={{ fontSize: "11px", color: "var(--mint-bright)", display: "flex", alignItems: "center", gap: "4px" }}>
+                  <Check size={12} /> Stored credential detected: {storedCredentialId.slice(0, 16)}...
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span className="badge-mint">
+                  <Check size={11} /> Authenticated via Mera
+                </span>
+                <button onClick={signOut} className="action action-dark" style={{ minHeight: "32px", padding: "0 14px" }}>
                   Sign Out
                 </button>
               </div>
 
-              <div className="space-y-1">
-                <span className="text-[11px] uppercase tracking-wider text-neutral-400 font-medium">
-                  Derived Monad EOA Address (BIP-44)
-                </span>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 font-mono text-xs sm:text-sm bg-neutral-900 border border-neutral-800 px-3 py-2 rounded-lg text-violet-300 break-all select-all">
-                    {address}
-                  </div>
+              <div style={{ background: "color-mix(in oklab, var(--paper) 4%, transparent)", borderRadius: "12px", padding: "16px", fontSize: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                <span style={{ fontSize: "10px", color: "var(--muted-foreground)", textTransform: "uppercase" }}>Derived Monad Address (EOA)</span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                  <code style={{ color: "var(--mint-bright)", fontSize: "13px", wordBreak: "break-all" }}>{address}</code>
                   <button
                     onClick={() => address && handleCopy(address)}
-                    className="p-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-neutral-300 transition shrink-0"
+                    style={{ background: "none", border: "none", color: "var(--paper)", cursor: "pointer", opacity: 0.8 }}
                     title="Copy Address"
                   >
-                    {copied ? (
-                      <Check className="w-4 h-4 text-emerald-400" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
+                    {copied ? <Check size={14} color="var(--mint)" /> : <Copy size={14} />}
                   </button>
-                  <a
-                    href={`https://testnet.monadexplorer.com/address/${address}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-neutral-300 transition shrink-0"
-                    title="View on Monad Explorer"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
                 </div>
               </div>
 
-              {storedCredentialId && (
-                <div className="space-y-1 pt-1">
-                  <span className="text-[11px] uppercase tracking-wider text-neutral-400 font-medium">
-                    WebAuthn Credential ID
-                  </span>
-                  <div className="font-mono text-xs text-neutral-400 bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded-lg truncate">
-                    {storedCredentialId}
-                  </div>
+              {/* Message Signing Verification */}
+              <div style={{ borderTop: "1px solid color-mix(in oklab, var(--paper) 8%, transparent)", paddingTop: "16px" }}>
+                <label className="portal-label">TEST MESSAGE SIGNING</label>
+                <div style={{ display: "flex", gap: "12px", alignItems: "center", marginTop: "8px" }}>
+                  <input
+                    type="text"
+                    value={testMessage}
+                    onChange={(e) => setTestMessage(e.target.value)}
+                    className="portal-input"
+                  />
+                  <button
+                    onClick={handleSignMessage}
+                    disabled={isSigning}
+                    className="action"
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    {isSigning ? "Signing..." : "Sign Message"}
+                  </button>
                 </div>
-              )}
+
+                {signature && (
+                  <div style={{ marginTop: "12px", background: "color-mix(in oklab, var(--paper) 3%, transparent)", borderRadius: "10px", padding: "12px", fontSize: "11px", wordBreak: "break-all" }}>
+                    <div style={{ color: "var(--muted-foreground)", marginBottom: "4px" }}>Signature:</div>
+                    <code style={{ color: "var(--paper)" }}>{signature}</code>
+                    <div style={{ marginTop: "8px", color: recoveredAddress?.toLowerCase() === address?.toLowerCase() ? "var(--mint-bright)" : "oklch(.75 .18 15)" }}>
+                      ✓ Verified: Recovered signer matches EOA address ({recoveredAddress?.slice(0, 8)}...)
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Gasless Meta-Transaction Relayer Execution Suite */}
+        {isConnected && (
+          <section className="portal-card">
+            <div className="portal-card-header">
+              <div>
+                <h2 style={{ fontSize: "18px", fontWeight: 500, margin: 0 }}>
+                  <em>Gasless Relayer Execution Test</em>
+                </h2>
+                <p style={{ margin: "4px 0 0", fontSize: "11px", color: "var(--muted-foreground)" }}>
+                  Trigger EIP-712 meta-transactions on Escrow.sol sponsored by the facilitator.
+                </p>
+              </div>
+              <button
+                onClick={handleFetchNonce}
+                style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer", fontSize: "11px" }}
+              >
+                Nonce: <span style={{ color: "var(--mint-bright)" }}>{clientNonce !== null ? clientNonce : "check"}</span>
+              </button>
             </div>
 
-            {/* Gasless Meta-Transaction Relayer Test Suite */}
-            <div className="bg-neutral-950/70 border border-violet-900/30 rounded-xl p-4 sm:p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-neutral-800/80 pb-3">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-violet-400" />
-                  <h3 className="text-sm font-semibold text-white">
-                    Gasless Meta-Transaction & Relayer Execution
-                  </h3>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleFetchNonce}
-                    className="text-[11px] text-neutral-400 hover:text-neutral-200 underline"
-                  >
-                    Check Nonce:{" "}
-                    <span className="font-mono text-violet-300">
-                      {clientNonce !== null ? clientNonce : "click"}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              <p className="text-xs text-neutral-400">
-                Sign EIP-712 typed authorizations with your passkey. The relayer
-                sponsors gas on Monad Testnet and executes on-chain idempotency
-                checks before broadcasting.
-              </p>
-
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-medium text-neutral-300 shrink-0">
-                  Target Job ID:
-                </label>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <label className="portal-label" style={{ margin: 0 }}>TARGET JOB ID:</label>
                 <input
                   type="number"
                   value={testJobId}
                   onChange={(e) => setTestJobId(e.target.value)}
-                  className="w-24 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-violet-500"
+                  className="portal-input"
+                  style={{ width: "100px" }}
                 />
               </div>
 
-              {/* Action Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
                 <button
                   onClick={() => handleRelayAction("partial")}
                   disabled={isRelaying}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 text-white font-medium text-xs transition shadow"
+                  className="action"
                 >
-                  {isRelaying ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Zap className="w-3.5 h-3.5" />
-                  )}
-                  Relay Partial (80%)
+                  {isRelaying ? "Relaying..." : "Relay 80% Advance"}
                 </button>
-
                 <button
                   onClick={() => handleRelayAction("remainder")}
                   disabled={isRelaying}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 active:bg-violet-700 disabled:opacity-50 text-white font-medium text-xs transition shadow"
+                  className="action"
                 >
-                  {isRelaying ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                  )}
-                  Relay Remainder (20%)
+                  {isRelaying ? "Relaying..." : "Relay 20% Remainder"}
                 </button>
-
                 <button
                   onClick={() => handleRelayAction("cancel")}
                   disabled={isRelaying}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-neutral-800 hover:bg-rose-900/50 hover:border-rose-700 border border-neutral-700 disabled:opacity-50 text-neutral-300 font-medium text-xs transition"
+                  className="action action-dark"
                 >
-                  {isRelaying ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-                  )}
-                  Relay Cancel Job
+                  {isRelaying ? "Relaying..." : "Relay Cancel Job"}
                 </button>
               </div>
 
-              {/* Relayer Execution Result */}
               {relayResult && (
-                <div
-                  className={`p-3.5 rounded-lg border text-xs space-y-2 ${
-                    relayResult.alreadyProcessed
-                      ? "bg-amber-950/40 border-amber-800/60 text-amber-200"
-                      : relayResult.success
-                      ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-200"
-                      : "bg-rose-950/40 border-rose-800/60 text-rose-200"
-                  }`}
-                >
-                  <div className="flex items-center justify-between font-semibold">
-                    <span className="flex items-center gap-1.5">
-                      {relayResult.alreadyProcessed ? (
-                        <>
-                          <ShieldCheck className="w-4 h-4 text-amber-400" />
-                          IDEMPOTENCY HIT (0 Gas Wasted)
-                        </>
-                      ) : relayResult.success ? (
-                        <>
-                          <Check className="w-4 h-4 text-emerald-400" />
-                          Relayer Broadcast Succeeded!
-                        </>
-                      ) : (
-                        <>
-                          <ShieldAlert className="w-4 h-4 text-rose-400" />
-                          Execution Failed
-                        </>
-                      )}
-                    </span>
-                    {relayResult.stateLabel && (
-                      <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-neutral-900 border border-neutral-700 text-neutral-300">
-                        State: {relayResult.stateLabel}
-                      </span>
-                    )}
+                <div style={{ marginTop: "12px", padding: "14px", borderRadius: "10px", background: relayResult.success ? "color-mix(in oklab, var(--mint) 12%, transparent)" : "color-mix(in oklab, oklch(.66 .2 15) 12%, transparent)", fontSize: "12px" }}>
+                  <div style={{ fontWeight: 600, color: relayResult.success ? "var(--mint-bright)" : "oklch(.75 .18 15)" }}>
+                    {relayResult.success ? "Relayer Transaction Relayed!" : "Execution Failed"}
                   </div>
-
-                  <p className="text-[11px] leading-relaxed">
+                  <div style={{ margin: "4px 0", color: "var(--paper)" }}>
                     {relayResult.message || relayResult.error}
-                  </p>
-
+                  </div>
                   {relayResult.txHash && (
-                    <div className="flex items-center justify-between pt-1 font-mono text-[11px]">
-                      <span className="text-neutral-400">Tx Hash:</span>
-                      <a
-                        href={`https://testnet.monadexplorer.com/tx/${relayResult.txHash}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-violet-300 hover:underline flex items-center gap-1"
-                      >
-                        {relayResult.txHash.slice(0, 10)}...{relayResult.txHash.slice(-8)}
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
+                    <a
+                      href={`https://testnet.monadexplorer.com/tx/${relayResult.txHash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-link"
+                    >
+                      View on Explorer <ExternalLink size={11} />
+                    </a>
                   )}
                 </div>
               )}
             </div>
-
-            {/* Test Message Signing Box */}
-            <div className="bg-neutral-950/70 border border-neutral-800 rounded-xl p-4 sm:p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <PenTool className="w-4 h-4 text-violet-400" />
-                <h3 className="text-sm font-semibold text-white">
-                  ECDSA Arbitrary Message Signing Test
-                </h3>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs text-neutral-400 font-medium">
-                  Message Payload
-                </label>
-                <input
-                  type="text"
-                  value={testMessage}
-                  onChange={(e) => setTestMessage(e.target.value)}
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3.5 py-2 text-xs text-neutral-100 focus:outline-none focus:border-violet-500"
-                />
-              </div>
-
-              <button
-                onClick={handleSignMessage}
-                disabled={isSigning}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 active:bg-neutral-800 disabled:opacity-50 text-neutral-200 border border-neutral-700 font-medium text-xs transition"
-              >
-                {isSigning ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Signing with Passkey...
-                  </>
-                ) : (
-                  <>
-                    <Fingerprint className="w-3.5 h-3.5 text-violet-400" />
-                    Sign Test Message
-                  </>
-                )}
-              </button>
-
-              {signError && (
-                <p className="text-xs text-rose-400 font-mono bg-rose-950/40 p-2.5 rounded-lg border border-rose-800/40">
-                  {signError}
-                </p>
-              )}
-
-              {signature && (
-                <div className="space-y-3 pt-2 border-t border-neutral-800/80">
-                  <div className="space-y-1">
-                    <span className="text-[11px] text-neutral-400 font-medium">
-                      Generated Signature (Hex)
-                    </span>
-                    <div className="font-mono text-[11px] text-emerald-400 bg-neutral-900 border border-neutral-800 p-2.5 rounded-lg break-all select-all">
-                      {signature}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-2.5 bg-emerald-950/30 border border-emerald-800/40 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span className="text-xs text-emerald-300 font-medium">
-                        Recovered Address Verification:
-                      </span>
-                    </div>
-                    <span className="font-mono text-xs text-emerald-200">
-                      {recoveredAddress === address
-                        ? "Verified Match ✓"
-                        : "Mismatch ✗"}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          </section>
         )}
+      </main>
 
-        {/* Footer info */}
-        <div className="border-t border-neutral-800/60 pt-4 flex flex-col sm:flex-row items-center justify-between text-[11px] text-neutral-500 gap-2">
-          <span>NadRupee • Cross-Border Freelance Escrow</span>
-          <span>Zero Seed Phrase • Hardware Passkey PRF • Sponsored Relayer</span>
+      {/* 3. UNIFIED FOOTER */}
+      <footer className="footer">
+        <div className="footer-tab">
+          <Mark />
         </div>
-      </div>
+        <div className="footer-lead">
+          Instant, escrow-backed
+          <br />
+          payments for Indian
+          <br />
+          freelancers — built on Monad.
+        </div>
+        <div>
+          <small>PRODUCT</small>
+          <Link href="/#funding">How it works</Link>
+          <Link href="/freelancer">For Freelancers</Link>
+          <Link href="/client">For Clients</Link>
+          <Link href="/auth-test">Protocol Lab</Link>
+        </div>
+        <div>
+          <small>COMPANY</small>
+          <Link href="/#company">About</Link>
+          <a href="mailto:hello@nadrupee.xyz">Contact</a>
+        </div>
+        <div>
+          <small>RESOURCES</small>
+          <Link href="/#funding">Features</Link>
+          <Link href="/#insights">Infrastructure</Link>
+        </div>
+        <div>
+          <small>INSIGHTS</small>
+          <Link href="/#insights">NadRupee on Monad</Link>
+          <Link href="/#company">Freelancer stories</Link>
+        </div>
+        <div className="footer-meta">
+          <span>© 2026 NadRupee</span>
+          <a href="mailto:hello@nadrupee.xyz">hello@nadrupee.xyz</a>
+        </div>
+      </footer>
     </div>
   );
 }
