@@ -440,9 +440,17 @@ export default function ClientDashboardPage() {
               </strong>
             </div>
 
-            <div style={{ borderTop: "1px solid color-mix(in oklab, var(--paper) 8%, transparent)", paddingTop: "14px", fontSize: "11px", color: "var(--muted-foreground)" }}>
-              <span>Smart Contract: </span>
-              <code style={{ color: "var(--paper)" }}>{ESCROW_CONTRACT_ADDRESS.slice(0, 8)}...{ESCROW_CONTRACT_ADDRESS.slice(-6)}</code>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid color-mix(in oklab, var(--paper) 8%, transparent)", paddingTop: "14px", fontSize: "11px", color: "var(--muted-foreground)" }}>
+              <span>Smart Contract:</span>
+              <a
+                href={`https://testnet.monadexplorer.com/address/${ESCROW_CONTRACT_ADDRESS}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-link"
+                style={{ fontSize: "11px", fontFamily: "monospace" }}
+              >
+                {ESCROW_CONTRACT_ADDRESS.slice(0, 8)}...{ESCROW_CONTRACT_ADDRESS.slice(-6)} <ExternalLink size={10} />
+              </a>
             </div>
           </div>
 

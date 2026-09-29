@@ -17,6 +17,13 @@ contracts/broadcast/
 
 # Environment Variables
 .env
+.env*
+*.env
+**/.env
+**/.env*
+contracts/.env
+contracts/cache/
+contracts/broadcast/
 .env*.local
 .env.development.local
 .env.test.local

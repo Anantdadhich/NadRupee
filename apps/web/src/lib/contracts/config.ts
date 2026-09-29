@@ -28,7 +28,7 @@ export const AGORA_METRICS_API = "https://api.agora.finance/v0/metrics";
 export const ESCROW_CONTRACT_ADDRESS: Address = (
   process.env.NEXT_PUBLIC_ESCROW_ADDRESS ||
   process.env.ESCROW_ADDRESS ||
-  "0x0000000000000000000000000000000000000000"
+  "0xBEe8F42f71ffFb7f2b34224ef5B88671Db2D97C4"
 ) as Address;
 
 export const AUSD_CONTRACT_ADDRESS: Address = (

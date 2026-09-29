@@ -357,6 +357,30 @@ export default function AuthTestPage() {
                     {parseFloat(relayerHealth.balanceMon).toFixed(4)} MON
                   </strong>
                 </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid color-mix(in oklab, var(--paper) 6%, transparent)", paddingTop: "8px" }}>
+                  <span style={{ color: "var(--muted-foreground)" }}>Escrow Contract:</span>
+                  <a
+                    href={`https://testnet.monadexplorer.com/address/${relayerHealth.escrowContract || ESCROW_CONTRACT_ADDRESS}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-link"
+                    style={{ fontSize: "11px", fontFamily: "monospace" }}
+                  >
+                    {(relayerHealth.escrowContract || ESCROW_CONTRACT_ADDRESS).slice(0, 8)}...{(relayerHealth.escrowContract || ESCROW_CONTRACT_ADDRESS).slice(-6)} <ExternalLink size={10} />
+                  </a>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ color: "var(--muted-foreground)" }}>Settlement Token:</span>
+                  <a
+                    href={`https://testnet.monadexplorer.com/address/${relayerHealth.ausdContract || AUSD_CONTRACT_ADDRESS}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-link"
+                    style={{ fontSize: "11px", fontFamily: "monospace" }}
+                  >
+                    {(relayerHealth.ausdContract || AUSD_CONTRACT_ADDRESS).slice(0, 8)}...{(relayerHealth.ausdContract || AUSD_CONTRACT_ADDRESS).slice(-6)} <ExternalLink size={10} />
+                  </a>
+                </div>
                 {relayerHealth.isLowBalance && (
                   <div style={{ fontSize: "11px", color: "oklch(.75 .18 15)", marginTop: "4px" }}>
                     {relayerHealth.message}

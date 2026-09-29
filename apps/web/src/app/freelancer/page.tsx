@@ -597,8 +597,17 @@ export default function FreelancerDashboardPage() {
                   ₹0 — Sponsored by Monad Facilitator
                 </div>
               </div>
-              <div style={{ fontSize: "10px", color: "var(--muted-foreground)" }}>
-                Contract: <code style={{ color: "var(--paper)" }}>{ESCROW_CONTRACT_ADDRESS ? `${ESCROW_CONTRACT_ADDRESS.slice(0, 8)}...${ESCROW_CONTRACT_ADDRESS.slice(-6)}` : "Testnet Configured"}</code>
+              <div style={{ fontSize: "11px", color: "var(--muted-foreground)", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid color-mix(in oklab, var(--paper) 6%, transparent)", paddingTop: "8px" }}>
+                <span>Smart Contract:</span>
+                <a
+                  href={`https://testnet.monadexplorer.com/address/${ESCROW_CONTRACT_ADDRESS}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-link"
+                  style={{ fontSize: "11px", fontFamily: "monospace" }}
+                >
+                  {ESCROW_CONTRACT_ADDRESS.slice(0, 8)}...{ESCROW_CONTRACT_ADDRESS.slice(-6)} <ExternalLink size={10} />
+                </a>
               </div>
             </div>
           </div>
