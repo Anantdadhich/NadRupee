@@ -1,11 +1,17 @@
-import { type Address, type WalletClient } from "viem";
+import { type Address, type WalletClient, parseUnits } from "viem";
 import { publicClient } from "@/lib/monad/chain";
 import {
   ESCROW_CONTRACT_ADDRESS,
   ESCROW_EIP712_DOMAIN,
   ESCROW_SIGNATURE_TYPES,
+  AUSD_CONTRACT_ADDRESS,
+  AUSD_DECIMALS,
+  AUSD_EIP712_DOMAIN,
+  AUSD_PERMIT_TYPES,
 } from "@/lib/contracts/config";
 import { escrowAbi } from "@/lib/contracts/escrowAbi";
+import { getAusdNonce } from "@/lib/contracts/escrowClient";
+
 
 export interface RelayResult {
   success: boolean;
@@ -203,3 +209,94 @@ export async function relayCancelJob(params: {
 
   return data;
 }
+
+/**
+ * Signs an EIP-2612 permit with user's passkey and relays a gasless direct AUSD transfer
+ */
+export async function sendAusdGasless(params: {
+  walletClient: WalletClient;
+  recipientAddress: Address;
+  amountUsd: number;
+  deadlineMinutes?: number;
+}): Promise<RelayResult> {
+  const { walletClient, recipientAddress, amountUsd, deadlineMinutes = 30 } = params;
+
+  if (!walletClient.account) {
+    throw new Error("WalletClient account is not connected.");
+  }
+
+  const owner = walletClient.account.address;
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + deadlineMinutes * 60);
+
+  // 1. Fetch current onchain nonce for AUSD
+  const nonce = await getAusdNonce(owner);
+  const amountWei = parseUnits(amountUsd.toString(), AUSD_DECIMALS);
+
+  // 2. Fetch relayer address
+  const healthRes = await fetch("/api/relayer/health");
+  const healthData = await healthRes.json();
+  if (!healthData.isConfigured || !healthData.address) {
+    throw new Error("Gasless relayer is not configured on the server.");
+  }
+  const relayerAddress = healthData.address as Address;
+
+  // 3. User signs EIP-2612 Permit typed data with passkey
+  const signature = await walletClient.signTypedData({
+    account: walletClient.account,
+    domain: {
+      ...AUSD_EIP712_DOMAIN,
+      verifyingContract: AUSD_CONTRACT_ADDRESS,
+    },
+    types: {
+      Permit: AUSD_PERMIT_TYPES.Permit,
+    },
+    primaryType: "Permit",
+    message: {
+      owner,
+      spender: relayerAddress,
+      value: amountWei,
+      nonce,
+      deadline,
+    },
+  });
+
+  // 4. Submit to /api/transfer
+  const res = await fetch("/api/transfer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      owner,
+      recipient: recipientAddress,
+      amountUsd,
+      deadline: deadline.toString(),
+      signature,
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to execute gasless transfer");
+  }
+
+  // Record in sender's local history
+  if (typeof window !== "undefined") {
+    try {
+      const historyKey = `nadrupee_transfers_${owner.toLowerCase()}`;
+      const existing = JSON.parse(localStorage.getItem(historyKey) || "[]");
+      existing.unshift({
+        id: `tx-${Date.now()}`,
+        type: "Sent AUSD (Gasless)",
+        recipient: recipientAddress,
+        amountUsd,
+        txHash: data.txHash,
+        timestamp: new Date().toUTCString(),
+      });
+      localStorage.setItem(historyKey, JSON.stringify(existing.slice(0, 50)));
+    } catch (e) {
+      console.warn("Failed to cache transfer history:", e);
+    }
+  }
+
+  return data;
+}
+

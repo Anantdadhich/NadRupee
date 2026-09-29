@@ -24,6 +24,7 @@ import {
   Sparkles,
   X,
   Menu,
+  Send,
 } from "lucide-react";
 import {
   relayReleasePartial,
@@ -36,6 +37,8 @@ import {
   ESCROW_CONTRACT_ADDRESS,
   AUSD_CONTRACT_ADDRESS,
 } from "@/lib/contracts/config";
+import { getAusdBalance } from "@/lib/contracts/escrowClient";
+import { SendAusdModal } from "@/components/SendAusdModal";
 
 const Mark = ({ compact = false }: { compact?: boolean }) => (
   <span className="brand-lockup" aria-label="NadRupee">
@@ -97,6 +100,10 @@ export default function AuthTestPage() {
   const [copied, setCopied] = useState(false);
   const [signError, setSignError] = useState<string | null>(null);
 
+  // Send AUSD Modal State & Balance
+  const [showSendAusdModal, setShowSendAusdModal] = useState<boolean>(false);
+  const [ausdBalance, setAusdBalance] = useState<number>(0);
+
   // Relayer Health State
   const [relayerHealth, setRelayerHealth] = useState<RelayerHealthData | null>(null);
   const [isCheckingRelayer, setIsCheckingRelayer] = useState(false);
@@ -150,7 +157,13 @@ export default function AuthTestPage() {
   useEffect(() => {
     fetchRelayerHealth();
     fetchAgora();
-  }, []);
+    if (address) {
+      getAusdBalance(address).then((b) => {
+        const val = parseFloat(b.balanceFormatted);
+        setAusdBalance(isNaN(val) ? 0 : val);
+      }).catch(console.error);
+    }
+  }, [address]);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -598,7 +611,64 @@ export default function AuthTestPage() {
             </div>
           </section>
         )}
+
+        {/* Agora Bounty: Send AUSD Flow Test Suite */}
+        {isConnected && (
+          <section className="portal-card">
+            <div className="portal-card-header">
+              <div>
+                <h2 style={{ fontSize: "18px", fontWeight: 500, margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Send size={16} color="var(--mint)" />
+                  <em>Agora Deliverable: Send AUSD Flow</em>
+                </h2>
+                <p style={{ margin: "4px 0 0", fontSize: "11px", color: "var(--muted-foreground)" }}>
+                  P2P Stablecoin Transfers on Monad Testnet with Mera Passkey auth (Gasless Relayer via EIP-2612 Permit & Direct).
+                </p>
+              </div>
+              <span className="badge-mint">
+                <Check size={11} /> Agora Bounty
+              </span>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", background: "color-mix(in oklab, var(--paper) 3%, transparent)", padding: "16px", borderRadius: "12px" }}>
+              <div>
+                <div style={{ fontSize: "11px", color: "var(--muted-foreground)" }}>YOUR ONCHAIN AUSD BALANCE</div>
+                <strong style={{ fontSize: "22px", color: "var(--mint-bright)", display: "block", marginTop: "2px" }}>
+                  ${ausdBalance.toFixed(2)} AUSD
+                </strong>
+                <span style={{ fontSize: "10px", color: "var(--muted-foreground)" }}>
+                  Token Address: {AUSD_CONTRACT_ADDRESS.slice(0, 10)}...{AUSD_CONTRACT_ADDRESS.slice(-6)}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowSendAusdModal(true)}
+                className="action"
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <Send size={14} /> Open Send AUSD Modal
+              </button>
+            </div>
+          </section>
+        )}
       </main>
+
+      {/* SEND AUSD MODAL */}
+      <SendAusdModal
+        isOpen={showSendAusdModal}
+        onClose={() => setShowSendAusdModal(false)}
+        onSuccess={() => {
+          if (address) {
+            getAusdBalance(address).then((b) => {
+              const val = parseFloat(b.balanceFormatted);
+              setAusdBalance(isNaN(val) ? 0 : val);
+            });
+          }
+        }}
+        currentBalance={ausdBalance}
+        fxRate={95.92}
+        senderAddress={address}
+        walletClient={walletClient}
+      />
 
       {/* 3. UNIFIED FOOTER */}
       <footer className="footer">

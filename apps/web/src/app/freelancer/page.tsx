@@ -24,6 +24,7 @@ import {
   AlertCircle,
   Building2,
   Lock,
+  Send,
 } from "lucide-react";
 import {
   ESCROW_CONTRACT_ADDRESS,
@@ -37,6 +38,7 @@ import {
   type OnChainJobDetails,
 } from "@/lib/contracts/escrowClient";
 import { relayReleasePartial, type RelayResult } from "@/lib/relayer/client";
+import { SendAusdModal } from "@/components/SendAusdModal";
 
 const Mark = ({ compact = false }: { compact?: boolean }) => (
   <span className="brand-lockup" aria-label="NadRupee">
@@ -122,6 +124,9 @@ export default function FreelancerDashboardPage() {
   const [activeReceipt, setActiveReceipt] = useState<CashoutReceipt | null>(null);
   const [isProcessingCashout, setIsProcessingCashout] = useState<boolean>(false);
   const [cashoutError, setCashoutError] = useState<string | null>(null);
+
+  // Send AUSD Modal State
+  const [showSendModal, setShowSendModal] = useState<boolean>(false);
 
   // Local recorded cashouts state for this account
   const [storedCashouts, setStoredCashouts] = useState<CashoutReceipt[]>([]);
@@ -519,21 +524,31 @@ export default function FreelancerDashboardPage() {
               </strong>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid color-mix(in oklab, var(--paper) 8%, transparent)", paddingTop: "14px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid color-mix(in oklab, var(--paper) 8%, transparent)", paddingTop: "14px", flexWrap: "wrap", gap: "10px" }}>
               <div>
                 <span style={{ fontSize: "10px", color: "var(--muted-foreground)", display: "block" }}>ON-CHAIN BALANCE</span>
                 <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--mint-bright)" }}>
                   {isLoadingBalance ? "..." : `${ausdBalance.toFixed(2)} AUSD`}
                 </span>
               </div>
-              <button
-                onClick={handleOpenCashout}
-                disabled={ausdBalance <= 0 || !isConnected}
-                className="action"
-                style={{ minHeight: "34px", padding: "0 18px", opacity: ausdBalance <= 0 || !isConnected ? 0.4 : 1 }}
-              >
-                Cash Out to UPI
-              </button>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button
+                  onClick={() => setShowSendModal(true)}
+                  disabled={!isConnected}
+                  className="action action-dark"
+                  style={{ minHeight: "34px", padding: "0 14px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Send size={12} /> Send AUSD
+                </button>
+                <button
+                  onClick={handleOpenCashout}
+                  disabled={ausdBalance <= 0 || !isConnected}
+                  className="action"
+                  style={{ minHeight: "34px", padding: "0 18px", opacity: ausdBalance <= 0 || !isConnected ? 0.4 : 1 }}
+                >
+                  Cash Out to UPI
+                </button>
+              </div>
             </div>
           </div>
 
@@ -949,6 +964,17 @@ export default function FreelancerDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* 5. SEND AUSD MODAL */}
+      <SendAusdModal
+        isOpen={showSendModal}
+        onClose={() => setShowSendModal(false)}
+        onSuccess={() => loadFreelancerData()}
+        currentBalance={ausdBalance}
+        fxRate={fxQuote.rate}
+        senderAddress={address}
+        walletClient={walletClient}
+      />
 
       {/* 6. UNIFIED FOOTER */}
       <footer className="footer">

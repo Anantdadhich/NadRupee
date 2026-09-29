@@ -20,6 +20,7 @@ import {
   X,
   Menu,
   XCircle,
+  Send,
 } from "lucide-react";
 import {
   ESCROW_CONTRACT_ADDRESS,
@@ -35,6 +36,7 @@ import {
   type OnChainJobDetails,
 } from "@/lib/contracts/escrowClient";
 import { relayReleaseRemainder, relayCancelJob, type RelayResult } from "@/lib/relayer/client";
+import { SendAusdModal } from "@/components/SendAusdModal";
 
 const Mark = ({ compact = false }: { compact?: boolean }) => (
   <span className="brand-lockup" aria-label="NadRupee">
@@ -69,6 +71,9 @@ export default function ClientDashboardPage() {
   const [copied, setCopied] = useState(false);
   const [ausdBalance, setAusdBalance] = useState<string>("0.00");
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false);
+
+  // Send AUSD Modal State
+  const [showSendModal, setShowSendModal] = useState<boolean>(false);
 
   // Form State
   const [freelancerInput, setFreelancerInput] = useState<string>("@arjun.monad");
@@ -395,13 +400,21 @@ export default function ClientDashboardPage() {
               </strong>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid color-mix(in oklab, var(--paper) 8%, transparent)", paddingTop: "14px", fontSize: "11px" }}>
-              <span style={{ color: "var(--muted-foreground)" }}>Token: Agora Stablecoin</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid color-mix(in oklab, var(--paper) 8%, transparent)", paddingTop: "14px", flexWrap: "wrap", gap: "10px" }}>
+              <button
+                onClick={() => setShowSendModal(true)}
+                disabled={!isConnected}
+                className="action action-dark"
+                style={{ minHeight: "34px", padding: "0 14px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <Send size={12} /> Send AUSD
+              </button>
               <a
                 href={`https://testnet.monadexplorer.com/address/${AUSD_CONTRACT_ADDRESS}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-link"
+                style={{ fontSize: "11px" }}
               >
                 Contract Explorer <ExternalLink size={11} />
               </a>
@@ -722,6 +735,17 @@ export default function ClientDashboardPage() {
           )}
         </section>
       </main>
+
+      {/* SEND AUSD MODAL */}
+      <SendAusdModal
+        isOpen={showSendModal}
+        onClose={() => setShowSendModal(false)}
+        onSuccess={() => loadData()}
+        currentBalance={parseFloat(ausdBalance) || 0}
+        fxRate={95.92}
+        senderAddress={address}
+        walletClient={walletClient}
+      />
 
       {/* 5. UNIFIED FOOTER */}
       <footer className="footer">

@@ -62,6 +62,30 @@ export const ESCROW_SIGNATURE_TYPES = {
   ],
 } as const;
 
+export const AUSD_EIP712_DOMAIN = {
+  name: "Agora Dollar",
+  version: "1",
+  chainId: BigInt(MONAD_CHAIN_ID),
+  verifyingContract: AUSD_CONTRACT_ADDRESS,
+} as const;
+
+export const AUSD_PERMIT_TYPES = {
+  Permit: [
+    { name: "owner", type: "address" },
+    { name: "spender", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "nonce", type: "uint256" },
+    { name: "deadline", type: "uint256" },
+  ],
+} as const;
+
+export const KNOWN_HANDLES: Record<string, `0x${string}`> = {
+  "@arjun.monad": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "@priya.dev": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+  "@rohit.sol": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+};
+
+
 export interface EscrowJob {
   jobId: bigint;
   client: Address;

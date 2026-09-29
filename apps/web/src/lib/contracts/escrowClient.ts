@@ -287,3 +287,87 @@ export async function createOnChainJob(params: {
 
   return { txHash, jobId: createdJobId };
 }
+
+/**
+ * Fetches current onchain EIP-2612 permit nonce for AUSD owner
+ */
+export async function getAusdNonce(owner: Address): Promise<bigint> {
+  if (
+    !AUSD_CONTRACT_ADDRESS ||
+    AUSD_CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000"
+  ) {
+    return BigInt(0);
+  }
+
+  try {
+    return await publicClient.readContract({
+      address: AUSD_CONTRACT_ADDRESS,
+      abi: ausdAbi,
+      functionName: "nonces",
+      args: [owner],
+    });
+  } catch (error) {
+    console.warn("[AUSD] Failed to read nonce from Monad RPC:", error);
+    return BigInt(0);
+  }
+}
+
+/**
+ * Direct onchain transfer of AUSD tokens (Agora Bounty Requirement).
+ * Signed with the user's passkey-derived account and broadcasted to Monad Testnet.
+ */
+export async function sendAusdDirect(params: {
+  walletClient: WalletClient;
+  recipientAddress: Address;
+  amountUsd: number;
+}): Promise<{ txHash: `0x${string}` }> {
+  const { walletClient, recipientAddress, amountUsd } = params;
+
+  if (!walletClient.account) {
+    throw new Error("Wallet account is not connected.");
+  }
+
+  if (
+    !AUSD_CONTRACT_ADDRESS ||
+    AUSD_CONTRACT_ADDRESS === "0x0000000000000000000000000000000000000000"
+  ) {
+    throw new Error("AUSD contract address is not configured.");
+  }
+
+  const senderAddress = walletClient.account.address;
+  const amountWei = parseUnits(amountUsd.toString(), AUSD_DECIMALS);
+
+  // Execute direct ERC20 transfer(to, amount)
+  const txHash = await walletClient.writeContract({
+    account: walletClient.account,
+    chain: monadTestnet,
+    address: AUSD_CONTRACT_ADDRESS,
+    abi: ausdAbi,
+    functionName: "transfer",
+    args: [recipientAddress, amountWei],
+  });
+
+  await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+  // Record in sender's local history
+  if (typeof window !== "undefined") {
+    try {
+      const historyKey = `nadrupee_transfers_${senderAddress.toLowerCase()}`;
+      const existing = JSON.parse(localStorage.getItem(historyKey) || "[]");
+      existing.unshift({
+        id: `tx-${Date.now()}`,
+        type: "Sent AUSD",
+        recipient: recipientAddress,
+        amountUsd,
+        txHash,
+        timestamp: new Date().toUTCString(),
+      });
+      localStorage.setItem(historyKey, JSON.stringify(existing.slice(0, 50)));
+    } catch (e) {
+      console.warn("Failed to cache transfer history:", e);
+    }
+  }
+
+  return { txHash };
+}
+
