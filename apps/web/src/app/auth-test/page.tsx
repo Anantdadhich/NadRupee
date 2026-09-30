@@ -254,6 +254,7 @@ export default function AuthTestPage() {
           <Link href="/">Overview</Link>
           <Link href="/freelancer">Freelancer Portal</Link>
           <Link href="/client">Client Portal</Link>
+          <Link href="/offramp">Instant INR Payout</Link>
           <Link href="/auth-test" style={{ color: "var(--paper)", fontWeight: 600 }}>
             Protocol Lab
           </Link>
@@ -302,6 +303,7 @@ export default function AuthTestPage() {
           <Link href="/" onClick={() => setMenuOpen(false)}>Overview</Link>
           <Link href="/freelancer" onClick={() => setMenuOpen(false)}>Freelancer Portal</Link>
           <Link href="/client" onClick={() => setMenuOpen(false)}>Client Portal</Link>
+          <Link href="/offramp" onClick={() => setMenuOpen(false)}>Instant INR Payout</Link>
           <Link href="/auth-test" onClick={() => setMenuOpen(false)}>Protocol Lab</Link>
         </div>
       )}
@@ -711,6 +713,7 @@ export default function AuthTestPage() {
           <Link href="/#funding">How it works</Link>
           <Link href="/freelancer">For Freelancers</Link>
           <Link href="/client">For Clients</Link>
+          <Link href="/offramp">Instant INR Payout</Link>
           <Link href="/auth-test">Protocol Lab</Link>
         </div>
         <div>

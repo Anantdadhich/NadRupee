@@ -123,7 +123,8 @@ export default function HomePage() {
             <a href="#funding">How it works</a>
             <Link href="/freelancer">For Freelancers</Link>
             <Link href="/client">For Clients</Link>
-            <a href="#insights">Insights</a>
+            <Link href="/offramp">Instant INR Payout</Link>
+            <Link href="/auth-test">Protocol Lab</Link>
           </div>
 
           <a href="#home" className="nav-brand">
@@ -169,6 +170,8 @@ export default function HomePage() {
             <a href="#funding" onClick={() => setMenuOpen(false)}>How it works</a>
             <Link href="/freelancer" onClick={() => setMenuOpen(false)}>For Freelancers</Link>
             <Link href="/client" onClick={() => setMenuOpen(false)}>For Clients</Link>
+            <Link href="/offramp" onClick={() => setMenuOpen(false)}>Instant INR Payout</Link>
+            <Link href="/auth-test" onClick={() => setMenuOpen(false)}>Protocol Lab</Link>
             <Link href="/freelancer" onClick={() => setMenuOpen(false)}>Get Started</Link>
           </div>
         )}
@@ -194,13 +197,15 @@ export default function HomePage() {
           </div>
         </div>
 
-        <img
-          className="hero-product"
-          src="/nadrupee-hero.png"
-          alt="Glowing rupee, escrow lock, and fingerprint tiles"
-          width={1408}
-          height={912}
-        />
+        <div className="hero-product-wrap">
+          <img
+            className="hero-product"
+            src="/nadrupee-hero.png"
+            alt="Glowing rupee, escrow lock, and fingerprint tiles"
+            width={1408}
+            height={912}
+          />
+        </div>
       </section>
 
       {/* 2. KEY FEATURES SECTION */}
@@ -546,7 +551,8 @@ export default function HomePage() {
             <a href="#funding">How it works</a>
             <Link href="/freelancer">For Freelancers</Link>
             <Link href="/client">For Clients</Link>
-            <Link href="/freelancer">Get started</Link>
+            <Link href="/offramp">Instant INR Payout</Link>
+            <Link href="/auth-test">Protocol Lab</Link>
           </div>
           <div>
             <small>COMPANY</small>

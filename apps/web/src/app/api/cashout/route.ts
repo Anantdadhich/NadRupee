@@ -38,9 +38,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!upiId || typeof upiId !== "string" || !upiId.includes("@")) {
+    if (!upiId || typeof upiId !== "string" || upiId.trim().length === 0) {
       return NextResponse.json(
-        { success: false, error: "Invalid UPI ID. Format should be user@bank or name@okhdfcbank." },
+        { success: false, error: "Missing payment destination (Bank Account or UPI ID)." },
         { status: 400 }
       );
     }
@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
             to: freelancerAddress as `0x${string}`,
             value: BigInt(0),
             data: memo,
+            gas: BigInt(65000),
           });
           await publicClient.waitForTransactionReceipt({ hash: onchainTxHash });
         } catch (broadcastErr: any) {

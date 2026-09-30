@@ -39,6 +39,8 @@ import {
 } from "@/lib/contracts/escrowClient";
 import { relayReleasePartial, type RelayResult } from "@/lib/relayer/client";
 import { SendAusdModal } from "@/components/SendAusdModal";
+import { OnmetaOfframpModal } from "@/components/OnmetaOfframpModal";
+import type { OnmetaOfframpOrder } from "@/lib/onmeta/types";
 
 const Mark = ({ compact = false }: { compact?: boolean }) => (
   <span className="brand-lockup" aria-label="NadRupee">
@@ -66,7 +68,7 @@ interface CashoutReceipt {
   amountInr: number;
   upiId: string;
   timestamp: string;
-  status: "Completed (Sandbox)";
+  status: "Completed (IMPS)" | "Completed (Sandbox)" | string;
   referenceCode: string;
   onchainTxHash: string;
 }
@@ -384,6 +386,7 @@ export default function FreelancerDashboardPage() {
             Freelancer Portal
           </Link>
           <Link href="/client">Client Portal</Link>
+          <Link href="/offramp">Instant INR Payout</Link>
           <Link href="/auth-test">Protocol Lab</Link>
         </div>
 
@@ -437,6 +440,7 @@ export default function FreelancerDashboardPage() {
           <Link href="/" onClick={() => setMenuOpen(false)}>Overview</Link>
           <Link href="/freelancer" onClick={() => setMenuOpen(false)}>Freelancer Portal</Link>
           <Link href="/client" onClick={() => setMenuOpen(false)}>Client Portal</Link>
+          <Link href="/offramp" onClick={() => setMenuOpen(false)}>Instant INR Payout</Link>
           <Link href="/auth-test" onClick={() => setMenuOpen(false)}>Protocol Lab</Link>
         </div>
       )}
@@ -546,7 +550,7 @@ export default function FreelancerDashboardPage() {
                   className="action"
                   style={{ minHeight: "34px", padding: "0 18px", opacity: ausdBalance <= 0 || !isConnected ? 0.4 : 1 }}
                 >
-                  Cash Out to UPI
+                  Cash Out (OnMeta)
                 </button>
               </div>
             </div>
@@ -796,183 +800,37 @@ export default function FreelancerDashboardPage() {
         </section>
       </main>
 
-      {/* 5. CASHOUT CONFIRMATION MODAL & VOUCHER */}
-      {showCashoutModal && (
-        <div className="modal-backdrop" onClick={() => !isProcessingCashout && setShowCashoutModal(false)}>
-          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: "480px", width: "100%" }}>
-            {activeReceipt ? (
-              /* Receipt Voucher Screen */
-              <div className="receipt-voucher">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: "16px", marginBottom: "20px" }}>
-                  <Mark />
-                  <span style={{ fontSize: "10px", padding: "4px 8px", background: "var(--night)", color: "var(--paper)", borderRadius: "8px", fontWeight: 600 }}>
-                    SANDBOX RECEIPT
-                  </span>
-                </div>
-
-                <div style={{ textAlign: "center", margin: "20px 0" }}>
-                  <div style={{ fontSize: "11px", color: "var(--muted-foreground)" }}>PAYOUT AMOUNT TRANSFERRED</div>
-                  <strong style={{ fontSize: "36px", fontWeight: 500, color: "var(--foreground)", display: "block", margin: "4px 0" }}>
-                    ₹{activeReceipt.amountInr.toLocaleString("en-IN")}
-                  </strong>
-                  <span style={{ fontSize: "12px", color: "var(--muted-foreground)" }}>
-                    ${activeReceipt.amountUsd.toFixed(2)} AUSD @ ₹{activeReceipt.lockedRate.toFixed(2)}/USD
-                  </span>
-                </div>
-
-                <div style={{ background: "color-mix(in oklab, var(--night) 4%, transparent)", borderRadius: "10px", padding: "14px", fontSize: "11px", display: "flex", flexDirection: "column", gap: "8px", margin: "18px 0" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "var(--muted-foreground)" }}>Recipient UPI:</span>
-                    <strong style={{ fontFamily: "monospace" }}>{activeReceipt.upiId}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "var(--muted-foreground)" }}>Receipt ID:</span>
-                    <span style={{ fontFamily: "monospace" }}>{activeReceipt.receiptId}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "var(--muted-foreground)" }}>Reference Code:</span>
-                    <span style={{ fontFamily: "monospace" }}>{activeReceipt.referenceCode}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "var(--muted-foreground)" }}>Timestamp:</span>
-                    <span>{activeReceipt.timestamp}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "var(--muted-foreground)" }}>Onchain Hash:</span>
-                    <a
-                      href={`https://testnet.monadexplorer.com/tx/${activeReceipt.onchainTxHash}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ color: "var(--foreground)", textDecoration: "underline", fontFamily: "monospace" }}
-                    >
-                      {activeReceipt.onchainTxHash.slice(0, 10)}... <ExternalLink size={10} style={{ display: "inline" }} />
-                    </a>
-                  </div>
-                </div>
-
-                <div style={{ fontSize: "10px", color: "var(--muted-foreground)", textAlign: "center", marginBottom: "20px" }}>
-                  This is an auditable sandbox payout confirmation. In production, this trigger executes instant UPI disbursement via licensed banking partners.
-                </div>
-
-                <div style={{ display: "flex", gap: "12px" }}>
-                  <button
-                    onClick={() => window.print()}
-                    style={{ flex: 1, padding: "10px", borderRadius: "12px", border: "1px solid var(--border)", background: "transparent", cursor: "pointer", fontSize: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
-                  >
-                    <Printer size={13} /> Print
-                  </button>
-                  <button
-                    onClick={() => setShowCashoutModal(false)}
-                    className="action"
-                    style={{ flex: 1, minHeight: "40px" }}
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Cashout Form Screen */
-              <div className="portal-card" style={{ background: "var(--night-soft)" }}>
-                <div className="portal-card-header">
-                  <div className="portal-card-title">
-                    <IndianRupee size={16} color="var(--mint)" /> Cash Out to Bank Account
-                  </div>
-                  <button
-                    onClick={() => setShowCashoutModal(false)}
-                    style={{ background: "none", border: "none", color: "var(--muted-foreground)", cursor: "pointer" }}
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-
-                <form onSubmit={handleConfirmCashout} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <div>
-                    <label className="portal-label">AMOUNT IN AUSD</label>
-                    <input
-                      type="number"
-                      step="any"
-                      min="1"
-                      max={ausdBalance}
-                      value={cashoutAmountUsd}
-                      onChange={(e) => setCashoutAmountUsd(parseFloat(e.target.value) || 0)}
-                      required
-                      className="portal-input"
-                    />
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--muted-foreground)", marginTop: "4px" }}>
-                      <span>Max Available: ${ausdBalance.toFixed(2)} AUSD</span>
-                      <button
-                        type="button"
-                        onClick={() => setCashoutAmountUsd(Math.floor(ausdBalance))}
-                        style={{ background: "none", border: "none", color: "var(--mint-bright)", cursor: "pointer" }}
-                      >
-                        Set Max
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="portal-label">RECIPIENT UPI ID</label>
-                    <input
-                      type="text"
-                      value={upiIdInput}
-                      onChange={(e) => setUpiIdInput(e.target.value)}
-                      placeholder="freelancer@bank"
-                      required
-                      className="portal-input"
-                    />
-                  </div>
-
-                  <div style={{ background: "color-mix(in oklab, var(--paper) 4%, transparent)", borderRadius: "10px", padding: "12px", fontSize: "11px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ color: "var(--muted-foreground)" }}>Locked Rate:</span>
-                      <strong style={{ color: "var(--mint)" }}>1 USD = ₹{fxQuote.rate.toFixed(2)}</strong>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid color-mix(in oklab, var(--paper) 8%, transparent)", paddingTop: "6px" }}>
-                      <span style={{ color: "var(--muted-foreground)" }}>You will receive:</span>
-                      <strong style={{ fontSize: "15px", color: "var(--paper)" }}>
-                        ₹{(cashoutAmountUsd * fxQuote.rate).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </strong>
-                    </div>
-                  </div>
-
-                  {cashoutError && (
-                    <div style={{ color: "oklch(.75 .18 15)", fontSize: "11px" }}>{cashoutError}</div>
-                  )}
-
-                  <div style={{ fontSize: "10px", color: "var(--muted-foreground)" }}>
-                    Notice: This simulates an immediate UPI IMPS disbursement on Monad testnet with an onchain audit receipt.
-                  </div>
-
-                  <div style={{ display: "flex", gap: "10px", marginTop: "6px" }}>
-                    <button
-                      type="button"
-                      onClick={() => setShowCashoutModal(false)}
-                      className="action action-dark"
-                      style={{ flex: 1 }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isProcessingCashout}
-                      className="action"
-                      style={{ flex: 1.5 }}
-                    >
-                      {isProcessingCashout ? (
-                        <>
-                          <Loader2 size={13} className="animate-spin" /> Processing...
-                        </>
-                      ) : (
-                        "Confirm Cash Out"
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* 5. ONMETA DIRECT OFF-RAMP & KYC SETTLEMENT MODAL */}
+      <OnmetaOfframpModal
+        isOpen={showCashoutModal}
+        onClose={() => setShowCashoutModal(false)}
+        userAddress={address}
+        userEmail=""
+        initialAmount={cashoutAmountUsd}
+        availableAusdBalance={ausdBalance}
+        onSuccess={(order: OnmetaOfframpOrder) => {
+          setAusdBalance((prev) => Math.max(0, prev - order.cryptoAmount));
+          const receipt: CashoutReceipt = {
+            receiptId: order.orderId,
+            amountUsd: order.cryptoAmount,
+            lockedRate: order.exchangeRate,
+            amountInr: order.netPayoutInr,
+            upiId: order.bankAccount?.bankName
+              ? `${order.bankAccount.bankName} (${order.bankAccount.accountNumberMasked})`
+              : order.upiId || "Direct Bank Transfer",
+            timestamp: new Date(order.updatedAt).toLocaleString(),
+            status: "Completed (IMPS)",
+            referenceCode: order.utr || `IMPS-${Date.now().toString().slice(-8)}`,
+            onchainTxHash: order.txHash || "0x0",
+          };
+          const updated = [receipt, ...storedCashouts];
+          setStoredCashouts(updated);
+          if (typeof window !== "undefined" && address) {
+            const cashoutKey = `nadrupee_cashouts_${address.toLowerCase()}`;
+            localStorage.setItem(cashoutKey, JSON.stringify(updated.slice(0, 30)));
+          }
+        }}
+      />
 
       {/* 5. SEND AUSD MODAL */}
       <SendAusdModal
@@ -1002,6 +860,7 @@ export default function FreelancerDashboardPage() {
           <Link href="/#funding">How it works</Link>
           <Link href="/freelancer">For Freelancers</Link>
           <Link href="/client">For Clients</Link>
+          <Link href="/offramp">Instant INR Payout</Link>
           <Link href="/auth-test">Protocol Lab</Link>
         </div>
         <div>
