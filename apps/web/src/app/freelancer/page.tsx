@@ -426,7 +426,7 @@ export default function FreelancerDashboardPage() {
                 }}
                 title="Instant 1-Click Passkey for Local & Testnet Testing"
               >
-                ⚡ Testnet Passkey
+                Testnet Passkey
               </button>
               <button
                 onClick={handleAuthAction}
@@ -490,11 +490,10 @@ export default function FreelancerDashboardPage() {
               background: claimResult.success
                 ? "color-mix(in oklab, var(--mint) 12%, transparent)"
                 : "color-mix(in oklab, oklch(.66 .2 15) 12%, transparent)",
-              border: `1px solid ${
-                claimResult.success
+              border: `1px solid ${claimResult.success
                   ? "color-mix(in oklab, var(--mint) 30%, transparent)"
                   : "color-mix(in oklab, oklch(.66 .2 15) 30%, transparent)"
-              }`,
+                }`,
               color: "var(--paper)",
               fontSize: "12px",
             }}
