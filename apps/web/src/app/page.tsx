@@ -65,6 +65,7 @@ export default function HomePage() {
     storedCredentialId,
     signUp,
     signIn,
+    connectTestnetPasskey,
     signOut,
   } = useAccount();
 
@@ -142,13 +143,30 @@ export default function HomePage() {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={handleAuthAction}
-                disabled={isConnecting}
-                className="signin"
-              >
-                {isConnecting ? "Verifying..." : "Sign in"}
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <button
+                  onClick={connectTestnetPasskey}
+                  disabled={isConnecting}
+                  className="signin"
+                  style={{
+                    background: "color-mix(in oklab, var(--mint) 15%, transparent)",
+                    border: "1px solid var(--mint)",
+                    color: "var(--mint)",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                  title="Instant 1-Click Passkey for Local & Testnet Testing"
+                >
+                  ⚡ Testnet Passkey
+                </button>
+                <button
+                  onClick={handleAuthAction}
+                  disabled={isConnecting}
+                  className="signin"
+                >
+                  {isConnecting ? "Verifying..." : "Biometric"}
+                </button>
+              </div>
             )}
             <Action href="/freelancer">Get Started</Action>
           </div>

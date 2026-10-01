@@ -85,6 +85,7 @@ export default function AuthTestPage() {
     storedCredentialId,
     signUp,
     signIn,
+    connectTestnetPasskey,
     signOut,
     clearError,
   } = useAccount();
@@ -274,13 +275,30 @@ export default function AuthTestPage() {
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => signIn()}
-              disabled={isConnecting}
-              className="signin"
-            >
-              {isConnecting ? "Evaluating..." : "Sign in"}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <button
+                onClick={connectTestnetPasskey}
+                disabled={isConnecting}
+                className="signin"
+                style={{
+                  background: "color-mix(in oklab, var(--mint) 15%, transparent)",
+                  border: "1px solid var(--mint)",
+                  color: "var(--mint)",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+                title="Instant 1-Click Passkey for Local & Testnet Testing"
+              >
+                ⚡ Testnet Passkey
+              </button>
+              <button
+                onClick={() => signIn()}
+                disabled={isConnecting}
+                className="signin"
+              >
+                {isConnecting ? "Evaluating..." : "Biometric"}
+              </button>
+            </div>
           )}
           <Link href="/freelancer" className="action action-dark">
             Freelancer Portal

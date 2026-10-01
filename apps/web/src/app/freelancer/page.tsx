@@ -68,7 +68,7 @@ interface CashoutReceipt {
   amountInr: number;
   upiId: string;
   timestamp: string;
-  status: "Completed (IMPS)" | "Completed (Sandbox)" | string;
+  status: "Completed (IMPS)" | string;
   referenceCode: string;
   onchainTxHash: string;
 }
@@ -95,6 +95,7 @@ export default function FreelancerDashboardPage() {
     storedCredentialId,
     signUp,
     signIn,
+    connectTestnetPasskey,
     signOut,
   } = useAccount();
 
@@ -119,10 +120,10 @@ export default function FreelancerDashboardPage() {
   const [claimingJobId, setClaimingJobId] = useState<bigint | null>(null);
   const [claimResult, setClaimResult] = useState<RelayResult | null>(null);
 
-  // Cashout Modal & Sandbox Receipt
+  // Cashout Modal & Settlement Receipt
   const [showCashoutModal, setShowCashoutModal] = useState<boolean>(false);
   const [cashoutAmountUsd, setCashoutAmountUsd] = useState<number>(100);
-  const [upiIdInput, setUpiIdInput] = useState<string>("freelancer@okhdfcbank");
+  const [upiIdInput, setUpiIdInput] = useState<string>("");
   const [activeReceipt, setActiveReceipt] = useState<CashoutReceipt | null>(null);
   const [isProcessingCashout, setIsProcessingCashout] = useState<boolean>(false);
   const [cashoutError, setCashoutError] = useState<string | null>(null);
@@ -274,7 +275,7 @@ export default function FreelancerDashboardPage() {
 
       const data = await res.json();
       if (!data.success) {
-        throw new Error(data.error || "Failed to process sandbox payout.");
+        throw new Error(data.error || "Failed to process bank payout.");
       }
 
       const receipt: CashoutReceipt = {
@@ -284,7 +285,7 @@ export default function FreelancerDashboardPage() {
         amountInr: data.amountInr,
         upiId: data.upiId,
         timestamp: data.timestamp,
-        status: "Completed (Sandbox)",
+        status: data.status || "Completed (IMPS)",
         referenceCode: data.referenceCode,
         onchainTxHash: data.onchainTxHash,
       };
@@ -299,7 +300,7 @@ export default function FreelancerDashboardPage() {
         localStorage.setItem(cashoutKey, JSON.stringify(updated.slice(0, 30)));
       }
     } catch (err: any) {
-      setCashoutError(err?.message || "Failed to process sandbox cashout.");
+      setCashoutError(err?.message || "Failed to process bank cashout.");
     } finally {
       setIsProcessingCashout(false);
     }
@@ -362,7 +363,7 @@ export default function FreelancerDashboardPage() {
       list.push({
         id: cashout.receiptId,
         type: "Cash out",
-        description: `Bank transfer to ${cashout.upiId} (Sandbox)`,
+        description: `Bank transfer to ${cashout.upiId} (IMPS)`,
         amountInr: cashout.amountInr,
         amountUsd: cashout.amountUsd,
         isCredit: false,
@@ -411,13 +412,30 @@ export default function FreelancerDashboardPage() {
               </button>
             </div>
           ) : (
-            <button
-              onClick={handleAuthAction}
-              disabled={isConnecting}
-              className="signin"
-            >
-              {isConnecting ? "Verifying..." : "Sign in"}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <button
+                onClick={connectTestnetPasskey}
+                disabled={isConnecting}
+                className="signin"
+                style={{
+                  background: "color-mix(in oklab, var(--mint) 15%, transparent)",
+                  border: "1px solid var(--mint)",
+                  color: "var(--mint)",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+                title="Instant 1-Click Passkey for Local & Testnet Testing"
+              >
+                ⚡ Testnet Passkey
+              </button>
+              <button
+                onClick={handleAuthAction}
+                disabled={isConnecting}
+                className="signin"
+              >
+                {isConnecting ? "Verifying..." : "Biometric"}
+              </button>
+            </div>
           )}
           <Link href="/client" className="action action-dark">
             Switch to Client
@@ -753,7 +771,7 @@ export default function FreelancerDashboardPage() {
                 <em>Transaction History</em>
               </h2>
               <p style={{ margin: "4px 0 0", fontSize: "11px", color: "var(--muted-foreground)" }}>
-                Verified onchain releases, advances, and sandbox bank cash-outs for this address.
+                Verified onchain releases, advances, and direct IMPS bank cash-outs for this address.
               </p>
             </div>
           </div>

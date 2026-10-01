@@ -6,6 +6,8 @@ import type { PrivateKeyAccount } from "viem/accounts";
 import {
   signUpWithPasskey,
   signInWithPasskey,
+  getTestnetDevPasskeySession,
+  TESTNET_PASSKEY_CREDENTIAL_ID,
   getStoredCredentialId,
   clearStoredCredentialId,
   formatAuthError,
@@ -23,6 +25,7 @@ export interface AccountContextType {
   storedCredentialId: string | null;
   signUp: (username?: string) => Promise<void>;
   signIn: () => Promise<void>;
+  connectTestnetPasskey: () => void;
   signOut: () => void;
   clearError: () => void;
 }
@@ -38,12 +41,6 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [isPrfUnavailable, setIsPrfUnavailable] = useState(false);
   const [storedCredentialId, setStoredCredentialIdState] = useState<string | null>(null);
 
-  // Sync stored credential ID from localStorage on mount
-  useEffect(() => {
-    const credId = getStoredCredentialId();
-    setStoredCredentialIdState(credId);
-  }, []);
-
   const handleAuthSuccess = useCallback((session: AuthSession) => {
     setAddress(session.account.address);
     setAccount(session.account);
@@ -52,6 +49,20 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     setIsPrfUnavailable(false);
   }, []);
+
+  // Sync stored credential ID from localStorage on mount and auto-restore if active
+  useEffect(() => {
+    const credId = getStoredCredentialId();
+    setStoredCredentialIdState(credId);
+    if (credId === TESTNET_PASSKEY_CREDENTIAL_ID) {
+      try {
+        const session = getTestnetDevPasskeySession();
+        handleAuthSuccess(session);
+      } catch (e) {
+        console.warn("Failed to restore testnet passkey session:", e);
+      }
+    }
+  }, [handleAuthSuccess]);
 
   const signUp = useCallback(async (username?: string) => {
     setIsConnecting(true);
@@ -87,6 +98,20 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     }
   }, [handleAuthSuccess]);
 
+  const connectTestnetPasskey = useCallback(() => {
+    setIsConnecting(true);
+    setError(null);
+    setIsPrfUnavailable(false);
+    try {
+      const session = getTestnetDevPasskeySession();
+      handleAuthSuccess(session);
+    } catch (err: any) {
+      setError(err?.message || "Failed to connect testnet passkey");
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [handleAuthSuccess]);
+
   const signOut = useCallback(() => {
     setAddress(null);
     setAccount(null);
@@ -115,6 +140,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         storedCredentialId,
         signUp,
         signIn,
+        connectTestnetPasskey,
         signOut,
         clearError,
       }}

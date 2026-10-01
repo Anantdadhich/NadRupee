@@ -64,6 +64,7 @@ export default function ClientDashboardPage() {
     storedCredentialId,
     signUp,
     signIn,
+    connectTestnetPasskey,
     signOut,
   } = useAccount();
 
@@ -280,13 +281,30 @@ export default function ClientDashboardPage() {
               </button>
             </div>
           ) : (
-            <button
-              onClick={handleAuthAction}
-              disabled={isConnecting}
-              className="signin"
-            >
-              {isConnecting ? "Connecting..." : "Connect Passkey"}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <button
+                onClick={connectTestnetPasskey}
+                disabled={isConnecting}
+                className="signin"
+                style={{
+                  background: "color-mix(in oklab, var(--mint) 15%, transparent)",
+                  border: "1px solid var(--mint)",
+                  color: "var(--mint)",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+                title="Instant 1-Click Passkey for Local & Testnet Testing"
+              >
+                ⚡ Testnet Passkey
+              </button>
+              <button
+                onClick={handleAuthAction}
+                disabled={isConnecting}
+                className="signin"
+              >
+                {isConnecting ? "Connecting..." : "Biometric"}
+              </button>
+            </div>
           )}
           <Link href="/freelancer" className="action action-dark">
             Switch to Freelancer

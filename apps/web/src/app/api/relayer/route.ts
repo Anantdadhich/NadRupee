@@ -212,3 +212,18 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function GET() {
+  try {
+    const health = await checkRelayerHealth();
+    return NextResponse.json(health, { status: 200 });
+  } catch (err: any) {
+    return NextResponse.json(
+      {
+        status: "error",
+        error: err?.message || "Failed to inspect relayer health",
+      },
+      { status: 500 }
+    );
+  }
+}

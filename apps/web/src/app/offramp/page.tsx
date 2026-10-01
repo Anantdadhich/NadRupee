@@ -47,6 +47,7 @@ export default function OfframpPage() {
     storedCredentialId,
     signUp,
     signIn,
+    connectTestnetPasskey,
     signOut,
   } = useAccount();
 
@@ -152,13 +153,23 @@ export default function OfframpPage() {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={handleAuthAction}
-                disabled={isConnecting}
-                className="hidden sm:block text-xs font-semibold px-3 py-2 rounded-xl bg-[oklch(0.18_0.02_188)] border border-[oklch(0.28_0.03_188)] text-white hover:bg-[oklch(0.24_0.02_188)] transition-all cursor-pointer"
-              >
-                {isConnecting ? "Connecting..." : "Connect Passkey"}
-              </button>
+              <div className="hidden sm:flex items-center gap-2">
+                <button
+                  onClick={connectTestnetPasskey}
+                  disabled={isConnecting}
+                  className="text-xs font-semibold px-3 py-2 rounded-xl bg-[oklch(0.73_0.105_169)]/15 border border-[oklch(0.73_0.105_169)] text-[oklch(0.73_0.105_169)] hover:brightness-110 transition-all cursor-pointer"
+                  title="Instant 1-Click Passkey for Local & Testnet Testing"
+                >
+                  ⚡ Testnet Passkey
+                </button>
+                <button
+                  onClick={handleAuthAction}
+                  disabled={isConnecting}
+                  className="text-xs font-semibold px-3 py-2 rounded-xl bg-[oklch(0.18_0.02_188)] border border-[oklch(0.28_0.03_188)] text-white hover:bg-[oklch(0.24_0.02_188)] transition-all cursor-pointer"
+                >
+                  {isConnecting ? "Connecting..." : "Biometric"}
+                </button>
+              </div>
             )}
 
             <button

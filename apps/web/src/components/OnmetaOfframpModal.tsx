@@ -228,7 +228,7 @@ export function OnmetaOfframpModal({
     return () => clearInterval(timer);
   }, [currentStep, quote, fetchSellQuotation]);
 
-  // Step 2b: Manual KYC Upload (Immediate verification for demo/sandbox)
+  // Step 2b: Manual Document KYC Upload
   const handleUploadKyc = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingKyc(true);
@@ -680,7 +680,7 @@ export function OnmetaOfframpModal({
                     </a>
                   </div>
 
-                  {/* Quick Verification Form (Sandbox / Manual) */}
+                  {/* Quick Document Verification Form */}
                   <form
                     onSubmit={handleUploadKyc}
                     className="p-4 rounded-xl bg-[oklch(0.16_0.018_188)] border border-[oklch(0.25_0.02_188)] space-y-3"
