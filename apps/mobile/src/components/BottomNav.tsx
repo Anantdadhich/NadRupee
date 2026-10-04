@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.night,
     borderTopWidth: 1,
-    borderTopColor: Colors.nightBorder,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
     paddingTop: 8,
   },
   navRow: {
@@ -84,23 +84,23 @@ const styles = StyleSheet.create({
     minWidth: 58,
   },
   iconWrap: {
-    width: 34,
-    height: 30,
+    width: 32,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 15,
+    borderRadius: 14,
   },
   iconWrapActive: {
     backgroundColor: 'rgba(56, 217, 169, 0.12)',
   },
   tabLabel: {
     fontSize: 10,
-    fontWeight: '600',
-    color: Colors.paperDim,
+    fontWeight: '500',
+    color: Colors.mutedForeground,
     marginTop: 2,
   },
   tabLabelActive: {
-    color: Colors.mintBright,
-    fontWeight: '800',
+    color: Colors.paper,
+    fontWeight: '600',
   },
 });

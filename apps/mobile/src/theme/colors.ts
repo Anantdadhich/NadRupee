@@ -1,46 +1,38 @@
-// NadRupee Design Tokens matching globals.css OKLCH palette
+// NadRupee Design Tokens directly derived from web globals.css
 export const Colors = {
-  night: '#0e1718', // Deep background
-  nightElevated: '#142022', // Card background
-  nightSoft: '#1a292b', // Secondary card / hover
-  nightBorder: '#23383b', // Subtle borders
-  nightSurface: '#0b1213', // Deep sunken inputs / bars
+  // Web: var(--night) = oklch(0.115 0.012 185) -> #0f1819
+  night: '#0f1819',
+  // Web: var(--night-soft) = oklch(0.17 0.025 188) -> #182628
+  nightSoft: '#182628',
+  // Web: .portal-card background -> color-mix(in oklab, var(--night-soft) 94%, transparent)
+  nightCard: '#162224',
+  nightCardBorder: 'rgba(255, 255, 255, 0.08)',
+  nightCardBorderHover: 'rgba(255, 255, 255, 0.14)',
+  nightSurface: '#111b1d',
 
-  mint: '#38d9a9', // Primary brand mint
-  mintBright: '#5eead4', // Vibrant mint accent
-  mintSoft: 'rgba(56, 217, 169, 0.12)', // Subtle mint tint
-  mintGlow: 'rgba(56, 217, 169, 0.25)', // Card glow
-  mintBorder: 'rgba(56, 217, 169, 0.35)',
+  // Web: var(--paper) = oklch(0.985 0.003 165) -> #f8fafc
+  paper: '#f8fafc',
+  paperMuted: 'rgba(248, 250, 252, 0.65)',
+  paperDim: 'rgba(248, 250, 252, 0.40)',
+  paperFaint: 'rgba(248, 250, 252, 0.12)',
 
-  paper: '#f8fafc', // Text primary
-  paperMuted: '#94a3b8', // Text secondary
-  paperDim: '#64748b', // Text tertiary
+  // Web: var(--mint) = oklch(0.73 0.105 169) -> #38d9a9
+  mint: '#38d9a9',
+  // Web: var(--mint-bright) = oklch(0.88 0.105 170) -> #5eead4
+  mintBright: '#5eead4',
+  mintSoft: 'rgba(56, 217, 169, 0.12)',
+  mintBorder: 'rgba(56, 217, 169, 0.25)',
 
-  amber: '#fbbf24', // Warning / Pending
-  amberSoft: 'rgba(251, 191, 36, 0.12)',
-  danger: '#f43f5e', // Red / Error
+  // Web: var(--muted-foreground) = oklch(0.51 0.018 190) -> #86999b
+  mutedForeground: '#86999b',
+
+  // Alerts & status badges
+  danger: '#f43f5e',
   dangerSoft: 'rgba(244, 63, 94, 0.12)',
-  blue: '#38bdf8', // Info
+  dangerBorder: 'rgba(244, 63, 94, 0.25)',
+  amber: '#fbbf24',
+  amberSoft: 'rgba(251, 191, 36, 0.12)',
+  amberBorder: 'rgba(251, 191, 36, 0.25)',
+  blue: '#38bdf8',
   blueSoft: 'rgba(56, 189, 248, 0.12)',
-
-  gold: '#facc15',
-  cardGradientStart: '#142022',
-  cardGradientEnd: '#0e1718',
-};
-
-export const Shadows = {
-  soft: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  glow: {
-    shadowColor: Colors.mint,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 6,
-  },
 };

@@ -10,25 +10,21 @@ import {
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { useAccount } from '../context/AccountContext';
-import { KNOWN_FREELANCERS, JobState } from '../constants/config';
+import { KNOWN_FREELANCERS, JobState, JOB_STATE_LABELS } from '../constants/config';
 import * as Haptics from 'expo-haptics';
 import {
-  Users,
-  Lock,
-  Plus,
-  CheckCircle2,
-  AlertCircle,
   Sparkles,
-  ArrowRight,
-  ShieldCheck,
+  Check,
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-react-native';
 
 export const ClientScreen: React.FC = () => {
-  const { address, isConnected, jobs, createJob, releaseRemainder, fxRate } = useAccount();
+  const { jobs, createJob, releaseRemainder, fxRate } = useAccount();
 
   const [freelancerInput, setFreelancerInput] = useState<string>('@arjun.monad');
-  const [jobTitle, setJobTitle] = useState<string>('Full-Stack Web3 DApp Development');
-  const [amountStr, setAmountStr] = useState<string>('1200');
+  const [jobTitle, setJobTitle] = useState<string>('Smart Contract Security Audit & Integration');
+  const [amountStr, setAmountStr] = useState<string>('1000');
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [actionJobId, setActionJobId] = useState<string | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
@@ -37,7 +33,8 @@ export const ClientScreen: React.FC = () => {
   const partialAdvanceUsd = amountUsd * 0.8;
   const remainderUsd = amountUsd * 0.2;
 
-  const resolvedAddress = KNOWN_FREELANCERS[freelancerInput.trim().toLowerCase()] || freelancerInput.trim();
+  const resolvedAddress =
+    KNOWN_FREELANCERS[freelancerInput.trim().toLowerCase()] || freelancerInput.trim();
 
   const handleCreateJob = async () => {
     if (amountUsd <= 0 || !jobTitle.trim() || !freelancerInput.trim()) {
@@ -50,7 +47,7 @@ export const ClientScreen: React.FC = () => {
       const res = await createJob(jobTitle.trim(), resolvedAddress, amountUsd);
       if (res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setFeedbackMsg(`Escrow #${res.jobId} created and locked on Monad!`);
+        setFeedbackMsg(`Escrow #${res.jobId} created & funded on Monad Testnet!`);
         setTimeout(() => setFeedbackMsg(null), 4000);
       }
     } catch (e: any) {
@@ -68,7 +65,7 @@ export const ClientScreen: React.FC = () => {
       const res = await releaseRemainder(jobId);
       if (res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setFeedbackMsg(`Milestone approved! 20% remainder settled to freelancer.`);
+        setFeedbackMsg(`Milestone confirmed! 20% remainder settled to freelancer.`);
         setTimeout(() => setFeedbackMsg(null), 4000);
       }
     } catch (e: any) {
@@ -80,122 +77,122 @@ export const ClientScreen: React.FC = () => {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={styles.pageContainer}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* 1. HERO BANNER */}
-      <View style={styles.hero}>
-        <View style={styles.eyebrow}>
-          <Users size={11} color={Colors.mintBright} />
-          <Text style={styles.eyebrowText}>NADRUPEE · CLIENT ESCROW PORTAL</Text>
+      {/* 1. PORTAL HERO */}
+      <View style={styles.portalHero}>
+        <View style={styles.darkEyebrow}>
+          <Sparkles size={11} color={Colors.mint} />
+          <Text style={styles.darkEyebrowText}>
+            NADRUPEE · CLIENT ESCROW PORTAL <Text style={styles.eyebrowSub}>MONAD TESTNET</Text>
+          </Text>
         </View>
-        <Text style={styles.heroTitle}>
-          Fund work with certainty. <Text style={styles.heroHighlight}>Zero dispute risk.</Text>
-        </Text>
-        <Text style={styles.heroSubtitle}>
-          Deposit Agora AUSD into on-chain escrow to guarantee payments for Indian freelancers. 80% is unlocked when confirmed; 20% remainder upon milestone approval.
+
+        <Text style={styles.portalH1Em}>Fund work with certainty.</Text>
+        <Text style={styles.portalH1White}>Zero dispute risk.</Text>
+
+        <Text style={styles.portalDesc}>
+          Deposit and lock Agora AUSD into on-chain escrow to guarantee payments for Indian freelancers. 80% is unlocked when confirmed; 20% remainder upon milestone approval.
         </Text>
       </View>
 
-      {/* Notification Banner */}
+      {/* Success Notification */}
       {feedbackMsg && (
         <View style={styles.alertSuccess}>
-          <CheckCircle2 size={16} color={Colors.mint} />
+          <Check size={14} color={Colors.mint} />
           <Text style={styles.alertSuccessText}>{feedbackMsg}</Text>
         </View>
       )}
 
       {/* 2. CREATE ESCROW CARD */}
-      <View style={styles.createCard}>
-        <View style={styles.cardHeader}>
-          <Lock size={16} color={Colors.mint} />
-          <Text style={styles.cardTitle}>Create & Fund Escrow</Text>
+      <View style={styles.portalCard}>
+        <View style={styles.portalCardHeader}>
+          <Text style={styles.portalLabel}>CREATE & FUND ESCROW JOB</Text>
         </View>
 
         {/* Freelancer Input */}
         <View style={styles.inputGroup}>
           <Text style={styles.fieldLabel}>FREELANCER HANDLE OR ADDRESS</Text>
           <TextInput
-            style={styles.textInput}
+            style={styles.portalInput}
             value={freelancerInput}
             onChangeText={setFreelancerInput}
             placeholder="@arjun.monad or 0x..."
-            placeholderTextColor={Colors.paperDim}
+            placeholderTextColor="rgba(248, 250, 252, 0.3)"
             autoCapitalize="none"
           />
           {KNOWN_FREELANCERS[freelancerInput.trim().toLowerCase()] && (
-            <Text style={styles.resolvedHandle}>
-              ✓ Resolved: {KNOWN_FREELANCERS[freelancerInput.trim().toLowerCase()].slice(0, 14)}...
+            <Text style={styles.resolvedText}>
+              ✓ {KNOWN_FREELANCERS[freelancerInput.trim().toLowerCase()].slice(0, 16)}...
             </Text>
           )}
         </View>
 
-        {/* Job Title */}
+        {/* Deliverable Title */}
         <View style={styles.inputGroup}>
-          <Text style={styles.fieldLabel}>JOB TITLE / DELIVERABLES</Text>
+          <Text style={styles.fieldLabel}>DELIVERABLE / JOB TITLE</Text>
           <TextInput
-            style={styles.textInput}
+            style={styles.portalInput}
             value={jobTitle}
             onChangeText={setJobTitle}
             placeholder="e.g. Smart Contract Security Audit"
-            placeholderTextColor={Colors.paperDim}
+            placeholderTextColor="rgba(248, 250, 252, 0.3)"
           />
         </View>
 
-        {/* Deposit Amount */}
+        {/* Amount */}
         <View style={styles.inputGroup}>
-          <Text style={styles.fieldLabel}>MILESTONE ESCROW AMOUNT (AUSD)</Text>
-          <View style={styles.amountInputRow}>
+          <Text style={styles.fieldLabel}>DEPOSIT AMOUNT (AUSD)</Text>
+          <View style={styles.amountWrap}>
             <TextInput
               style={styles.amountInput}
               value={amountStr}
               onChangeText={setAmountStr}
               keyboardType="numeric"
               placeholder="1000"
-              placeholderTextColor={Colors.paperDim}
+              placeholderTextColor="rgba(248, 250, 252, 0.3)"
             />
-            <Text style={styles.currencyBadge}>AUSD</Text>
+            <Text style={styles.amountSuffix}>AUSD</Text>
           </View>
         </View>
 
-        {/* Split Preview */}
-        <View style={styles.splitsPreview}>
-          <View style={styles.splitItem}>
-            <Text style={styles.splitItemLabel}>80% ADVANCE</Text>
-            <Text style={[styles.splitItemVal, { color: Colors.mintBright }]}>
-              ${partialAdvanceUsd.toFixed(0)} AUSD
-            </Text>
+        {/* Splits Info */}
+        <View style={styles.splitsCard}>
+          <View>
+            <Text style={styles.splitsSub}>80% ADVANCE</Text>
+            <Text style={styles.splitsValMint}>${partialAdvanceUsd.toFixed(0)} AUSD</Text>
           </View>
-          <View style={styles.splitItem}>
-            <Text style={styles.splitItemLabel}>20% REMAINDER</Text>
-            <Text style={styles.splitItemVal}>${remainderUsd.toFixed(0)} AUSD</Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.splitsSub}>20% REMAINDER</Text>
+            <Text style={styles.splitsVal}>${remainderUsd.toFixed(0)} AUSD</Text>
           </View>
         </View>
 
         <TouchableOpacity
-          style={styles.depositBtn}
+          style={styles.actionBtn}
           onPress={handleCreateJob}
           disabled={isCreating}
           activeOpacity={0.8}
         >
           {isCreating ? (
-            <ActivityIndicator color="#000" />
+            <ActivityIndicator color={Colors.night} />
           ) : (
-            <>
-              <Lock size={15} color="#000" />
-              <Text style={styles.depositBtnText}>Lock ${amountUsd} AUSD in Escrow</Text>
-            </>
+            <Text style={styles.actionBtnText}>
+              Deposit & Lock ${amountUsd} AUSD in Escrow
+            </Text>
           )}
         </TouchableOpacity>
       </View>
 
       {/* 3. ACTIVE ESCROWS LIST */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Active Escrows ({jobs.length})</Text>
-        <Text style={styles.sectionSubtitle}>
-          Real-time on-chain status of funded jobs
-        </Text>
+      <View style={[styles.portalCard, { marginTop: 24 }]}>
+        <View style={styles.portalCardHeader}>
+          <Text style={styles.sectionH2Em}>
+            Created Escrows <Text style={styles.sectionH2White}>({jobs.length})</Text>
+          </Text>
+        </View>
 
         <View style={styles.jobsList}>
           {jobs.map((job) => {
@@ -206,63 +203,54 @@ export const ClientScreen: React.FC = () => {
 
             return (
               <View key={job.id} style={styles.jobItemCard}>
-                <View style={styles.jobHeaderRow}>
+                <View style={styles.jobItemTop}>
                   <Text style={styles.jobItemTitle}>{job.title}</Text>
                   <View
                     style={[
-                      styles.statusPill,
-                      isFunded && styles.statusPillFunded,
-                      isPartial && styles.statusPillPartial,
-                      isCompleted && styles.statusPillCompleted,
+                      styles.stateBadge,
+                      isCompleted || isPartial ? styles.badgeMint : styles.badgeMuted,
                     ]}
                   >
                     <Text
-                      style={[
-                        styles.statusPillText,
-                        isFunded && { color: Colors.amber },
-                        isPartial && { color: Colors.mintBright },
-                        isCompleted && { color: Colors.blue },
-                      ]}
+                      style={
+                        isCompleted || isPartial ? styles.badgeMintText : styles.badgeMutedText
+                      }
                     >
-                      {isFunded ? 'Funded' : isPartial ? '80% Released' : 'Completed'}
+                      {JOB_STATE_LABELS[job.state]}
                     </Text>
                   </View>
                 </View>
 
-                <View style={styles.jobAmountsRow}>
-                  <Text style={styles.jobTotalText}>
-                    Total: <Text style={{ color: Colors.paper }}>${job.amountUsd} AUSD</Text>
+                <View style={styles.jobItemMeta}>
+                  <Text style={styles.jobItemMetaText}>
+                    Freelancer: <Text style={{ color: Colors.paper }}>{job.freelancer.slice(0, 6)}...{job.freelancer.slice(-4)}</Text>
                   </Text>
-                  <Text style={styles.jobTimeText}>{job.createdAt}</Text>
+                  <Text style={styles.jobItemMetaText}>
+                    Total Locked: <Text style={{ color: Colors.paper, fontWeight: '700' }}>${job.amountUsd} AUSD</Text>
+                  </Text>
                 </View>
 
-                {/* Actions */}
                 {isPartial && (
                   <TouchableOpacity
-                    style={styles.releaseBtn}
+                    style={styles.actionBtn}
                     onPress={() => handleReleaseRemainder(job.id)}
                     disabled={isActing}
                     activeOpacity={0.8}
                   >
                     {isActing ? (
-                      <ActivityIndicator color="#000" />
+                      <ActivityIndicator color={Colors.night} />
                     ) : (
-                      <>
-                        <CheckCircle2 size={14} color="#000" />
-                        <Text style={styles.releaseBtnText}>
-                          Approve Milestone & Release 20% (${job.remainderAmountUsd} AUSD)
-                        </Text>
-                      </>
+                      <Text style={styles.actionBtnText}>
+                        Approve Milestone & Release 20% (${job.remainderAmountUsd} AUSD)
+                      </Text>
                     )}
                   </TouchableOpacity>
                 )}
 
                 {isCompleted && (
-                  <View style={styles.completedBadge}>
-                    <CheckCircle2 size={13} color={Colors.mint} />
-                    <Text style={styles.completedBadgeText}>
-                      100% Settled. Job successfully archived onchain.
-                    </Text>
+                  <View style={styles.claimedRow}>
+                    <Check size={13} color={Colors.mintBright} />
+                    <Text style={styles.claimedText}>Milestone Settled 100%</Text>
                   </View>
                 )}
               </View>
@@ -275,267 +263,255 @@ export const ClientScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  pageContainer: {
     flex: 1,
     backgroundColor: Colors.night,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 60,
   },
-  hero: {
-    marginBottom: 20,
+  portalHero: {
+    marginBottom: 24,
   },
-  eyebrow: {
+  darkEyebrow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(56, 217, 169, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(56, 217, 169, 0.3)',
+    borderColor: 'rgba(56, 217, 169, 0.25)',
     alignSelf: 'flex-start',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 14,
+    marginBottom: 14,
+  },
+  darkEyebrowText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(248, 250, 252, 0.75)',
+    letterSpacing: 0.5,
+  },
+  eyebrowSub: {
+    color: Colors.mutedForeground,
+    marginLeft: 4,
+  },
+  portalH1Em: {
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '500',
+    color: 'rgba(248, 250, 252, 0.5)',
+  },
+  portalH1White: {
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '500',
+    color: Colors.paper,
     marginBottom: 10,
   },
-  eyebrowText: {
-    color: Colors.mintBright,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-  },
-  heroTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: Colors.paper,
-    lineHeight: 34,
-    letterSpacing: -0.6,
-    marginBottom: 8,
-  },
-  heroHighlight: {
-    color: Colors.mint,
-  },
-  heroSubtitle: {
+  portalDesc: {
     fontSize: 13,
-    color: Colors.paperMuted,
-    lineHeight: 20,
+    color: 'rgba(248, 250, 252, 0.65)',
+    lineHeight: 18,
   },
   alertSuccess: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: Colors.mintSoft,
+    backgroundColor: 'rgba(56, 217, 169, 0.12)',
     borderWidth: 1,
-    borderColor: Colors.mintBorder,
+    borderColor: 'rgba(56, 217, 169, 0.3)',
     padding: 12,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 18,
   },
   alertSuccessText: {
-    color: Colors.mintBright,
+    color: Colors.paper,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     flex: 1,
   },
-  createCard: {
-    backgroundColor: Colors.nightElevated,
+  portalCard: {
+    backgroundColor: Colors.nightCard,
     borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 24,
+    borderColor: Colors.nightCardBorder,
+    borderRadius: 16,
+    padding: 20,
   },
-  cardHeader: {
+  portalCardHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    paddingBottom: 14,
     marginBottom: 16,
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.paper,
+  portalLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.mutedForeground,
+    letterSpacing: 0.5,
   },
   inputGroup: {
     marginBottom: 14,
   },
   fieldLabel: {
     fontSize: 10,
-    fontWeight: '800',
-    color: Colors.paperMuted,
+    fontWeight: '700',
+    color: Colors.mutedForeground,
     letterSpacing: 0.5,
     marginBottom: 6,
   },
-  textInput: {
-    height: 48,
-    backgroundColor: Colors.nightSurface,
+  portalInput: {
+    height: 44,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: Colors.nightBorder,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 12,
     paddingHorizontal: 14,
     color: Colors.paper,
-    fontSize: 14,
+    fontSize: 13,
   },
-  resolvedHandle: {
+  resolvedText: {
     fontSize: 11,
-    color: Colors.mint,
+    color: Colors.mintBright,
     marginTop: 4,
-    fontWeight: '600',
+    fontWeight: '500',
   },
-  amountInputRow: {
+  amountWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.nightSurface,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: Colors.nightBorder,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 12,
     paddingHorizontal: 14,
   },
   amountInput: {
     flex: 1,
-    height: 48,
+    height: 44,
     color: Colors.paper,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
   },
-  currencyBadge: {
+  amountSuffix: {
     color: Colors.mint,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  splitsPreview: {
+  splitsCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: Colors.nightSoft,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 10,
     padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 18,
   },
-  splitItem: {
-    gap: 2,
-  },
-  splitItemLabel: {
+  splitsSub: {
     fontSize: 9,
     fontWeight: '700',
-    color: Colors.paperDim,
+    color: Colors.mutedForeground,
+    letterSpacing: 0.5,
   },
-  splitItemVal: {
+  splitsValMint: {
     fontSize: 13,
-    fontWeight: '800',
-    color: Colors.paper,
+    fontWeight: '600',
+    color: Colors.mintBright,
+    marginTop: 2,
   },
-  depositBtn: {
-    height: 48,
-    backgroundColor: Colors.mint,
-    borderRadius: 14,
-    flexDirection: 'row',
+  splitsVal: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.paper,
+    marginTop: 2,
+  },
+  actionBtn: {
+    height: 38,
+    borderRadius: 22,
+    backgroundColor: Colors.paper,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    paddingHorizontal: 20,
   },
-  depositBtnText: {
-    color: '#000',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: Colors.paper,
-  },
-  sectionSubtitle: {
+  actionBtnText: {
+    color: Colors.night,
     fontSize: 12,
-    color: Colors.paperDim,
-    marginTop: 2,
-    marginBottom: 12,
+    fontWeight: '700',
+  },
+  sectionH2Em: {
+    fontSize: 17,
+    fontWeight: '500',
+    color: 'rgba(248, 250, 252, 0.5)',
+  },
+  sectionH2White: {
+    fontSize: 17,
+    fontWeight: '500',
+    color: Colors.paper,
   },
   jobsList: {
     gap: 12,
   },
   jobItemCard: {
-    backgroundColor: Colors.nightElevated,
     borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 16,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
     padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     gap: 10,
   },
-  jobHeaderRow: {
+  jobItemTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 8,
+    alignItems: 'center',
   },
   jobItemTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: Colors.paper,
     flex: 1,
+    marginRight: 8,
   },
-  statusPill: {
+  stateBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: 14,
   },
-  statusPillFunded: {
-    backgroundColor: Colors.amberSoft,
+  badgeMint: {
+    backgroundColor: 'rgba(56, 217, 169, 0.12)',
     borderWidth: 1,
-    borderColor: Colors.amber,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
   },
-  statusPillPartial: {
-    backgroundColor: Colors.mintSoft,
-    borderWidth: 1,
-    borderColor: Colors.mintBorder,
-  },
-  statusPillCompleted: {
-    backgroundColor: Colors.blueSoft,
-    borderWidth: 1,
-    borderColor: Colors.blue,
-  },
-  statusPillText: {
+  badgeMintText: {
+    color: Colors.mintBright,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '600',
   },
-  jobAmountsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  badgeMuted: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  jobTotalText: {
-    fontSize: 12,
-    color: Colors.paperMuted,
+  badgeMutedText: {
+    color: 'rgba(248, 250, 252, 0.7)',
+    fontSize: 10,
+    fontWeight: '500',
   },
-  jobTimeText: {
+  jobItemMeta: {
+    gap: 3,
+  },
+  jobItemMetaText: {
     fontSize: 11,
-    color: Colors.paperDim,
+    color: Colors.mutedForeground,
   },
-  releaseBtn: {
-    height: 42,
-    backgroundColor: Colors.mint,
-    borderRadius: 12,
+  claimedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 4,
+    gap: 4,
+    paddingTop: 2,
   },
-  releaseBtnText: {
-    color: '#000',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  completedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingTop: 4,
-  },
-  completedBadgeText: {
+  claimedText: {
     fontSize: 11,
     color: Colors.mintBright,
     fontWeight: '600',

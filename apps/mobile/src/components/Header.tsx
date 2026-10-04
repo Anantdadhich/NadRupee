@@ -1,14 +1,20 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandMark } from './BrandMark';
 import { Colors } from '../theme/colors';
 import { useAccount } from '../context/AccountContext';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { Zap, Fingerprint, LogOut, Check, Copy } from 'lucide-react-native';
+import { Check, Copy } from 'lucide-react-native';
+import { TabType } from './BottomNav';
 
-export const Header: React.FC = () => {
+interface Props {
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
+}
+
+export const Header: React.FC<Props> = ({ activeTab, onTabChange }) => {
   const insets = useSafeAreaInsets();
   const {
     address,
@@ -19,198 +25,223 @@ export const Header: React.FC = () => {
     signOut,
   } = useAccount();
 
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
     if (address) {
       await Clipboard.setStringAsync(address);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const handleTestnetLogin = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    connectTestnetPasskey();
-  };
-
-  const handleBiometricLogin = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    connectBiometricPasskey();
-  };
+  const navTabs: { key: TabType; label: string }[] = [
+    { key: 'home', label: 'Overview' },
+    { key: 'freelancer', label: 'Freelancer' },
+    { key: 'client', label: 'Client' },
+    { key: 'offramp', label: 'Offramp' },
+    { key: 'protocol', label: 'Protocol Lab' },
+  ];
 
   return (
-    <View style={[styles.wrapper, { paddingTop: Math.max(insets.top, 12) + 8 }]}>
-      <View style={styles.topRow}>
-        <View style={styles.left}>
-          <BrandMark size={16} />
-          <View style={styles.testnetBadge}>
-            <View style={styles.testnetDot} />
-            <Text style={styles.testnetText}>MONAD TESTNET</Text>
-          </View>
-        </View>
+    <View style={[styles.headerContainer, { paddingTop: Math.max(insets.top, 12) + 4 }]}>
+      {/* 1. FLOATING NAV SHELL (Matching web .nav-shell) */}
+      <View style={styles.navShell}>
+        <TouchableOpacity
+          onPress={() => onTabChange('home')}
+          activeOpacity={0.8}
+        >
+          <BrandMark />
+        </TouchableOpacity>
 
-        <View style={styles.right}>
+        <View style={styles.navActions}>
           {isConnected && address ? (
-            <View style={styles.connectedRow}>
+            <View style={styles.authStatus}>
+              <View style={styles.authDot} />
               <TouchableOpacity
                 onPress={handleCopy}
                 style={styles.addressPill}
                 activeOpacity={0.7}
               >
-                <View style={styles.onlineDot} />
                 <Text style={styles.addressText}>
                   {address.slice(0, 5)}...{address.slice(-4)}
                 </Text>
                 {copied ? (
-                  <Check size={12} color={Colors.mint} />
+                  <Check size={11} color={Colors.mint} />
                 ) : (
-                  <Copy size={12} color={Colors.paperDim} />
+                  <Copy size={11} color={Colors.paperDim} />
                 )}
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={signOut}
-                style={styles.iconButton}
-                activeOpacity={0.6}
+                style={styles.signOutBtn}
+                activeOpacity={0.7}
               >
-                <LogOut size={13} color={Colors.paperDim} />
+                <Text style={styles.signOutText}>Sign out</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.authButtons}>
+            <View style={styles.authRow}>
               <TouchableOpacity
-                onPress={handleTestnetLogin}
+                onPress={connectTestnetPasskey}
                 disabled={isConnecting}
-                style={styles.testnetPasskeyBtn}
+                style={styles.testnetBtn}
                 activeOpacity={0.7}
               >
-                <Zap size={11} color={Colors.mint} />
-                <Text style={styles.testnetPasskeyBtnText}>Testnet Passkey</Text>
+                <Text style={styles.testnetBtnText}>Testnet Passkey</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={handleBiometricLogin}
+                onPress={connectBiometricPasskey}
                 disabled={isConnecting}
-                style={styles.biometricBtn}
+                style={styles.signinBtn}
                 activeOpacity={0.7}
               >
-                <Fingerprint size={12} color={Colors.paper} />
+                <Text style={styles.signinBtnText}>
+                  {isConnecting ? '...' : 'Biometric'}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
       </View>
+
+      {/* 2. SUB-NAV PORTAL PILL SWITCHER */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabsRow}
+      >
+        {navTabs.map((t) => {
+          const isActive = activeTab === t.key;
+          return (
+            <TouchableOpacity
+              key={t.key}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onTabChange(t.key);
+              }}
+              style={[styles.tabPill, isActive && styles.tabPillActive]}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.tabPillText, isActive && styles.tabPillTextActive]}>
+                {t.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
+  headerContainer: {
     backgroundColor: Colors.night,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.nightBorder,
     paddingHorizontal: 16,
-    paddingBottom: 12,
-    zIndex: 50,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
-  topRow: {
+  navShell: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  left: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  testnetBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(56, 217, 169, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(56, 217, 169, 0.25)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 12,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 32,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    minHeight: 46,
   },
-  testnetDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: Colors.mint,
-  },
-  testnetText: {
-    color: Colors.mint,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-  },
-  right: {
+  navActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  connectedRow: {
+  authStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
-  addressPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.nightElevated,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 14,
-  },
-  onlineDot: {
+  authDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: Colors.mint,
   },
+  addressPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   addressText: {
     color: Colors.paper,
     fontSize: 11,
     fontFamily: 'monospace',
-    fontWeight: '600',
+    fontWeight: '500',
   },
-  iconButton: {
-    padding: 6,
-    backgroundColor: Colors.nightElevated,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
+  signOutBtn: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
   },
-  authButtons: {
+  signOutText: {
+    color: Colors.paperDim,
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  authRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  testnetPasskeyBtn: {
+  testnetBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 18,
+    backgroundColor: 'rgba(56, 217, 169, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.3)',
+  },
+  testnetBtnText: {
+    color: Colors.mint,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  signinBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  signinBtnText: {
+    color: Colors.paper,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  tabsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.mintSoft,
-    borderWidth: 1,
-    borderColor: Colors.mintBorder,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-    borderRadius: 12,
+    gap: 6,
+    paddingTop: 10,
+    paddingBottom: 2,
   },
-  testnetPasskeyBtnText: {
-    color: Colors.mintBright,
-    fontSize: 11,
-    fontWeight: '700',
+  tabPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
   },
-  biometricBtn: {
-    backgroundColor: Colors.nightElevated,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    padding: 6,
-    borderRadius: 10,
+  tabPillActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  tabPillText: {
+    color: Colors.paperDim,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  tabPillTextActive: {
+    color: Colors.paper,
+    fontWeight: '600',
   },
 });

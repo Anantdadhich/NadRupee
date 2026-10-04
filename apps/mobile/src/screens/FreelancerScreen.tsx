@@ -10,17 +10,15 @@ import {
 import { Colors } from '../theme/colors';
 import { useAccount } from '../context/AccountContext';
 import { CashoutModal } from '../components/CashoutModal';
-import { JobState } from '../constants/config';
+import { JobState, JOB_STATE_LABELS, ESCROW_CONTRACT_ADDRESS } from '../constants/config';
 import * as Haptics from 'expo-haptics';
 import {
-  Banknote,
-  Zap,
-  ArrowUpRight,
-  CheckCircle2,
-  Clock,
-  Briefcase,
-  ShieldAlert,
   Sparkles,
+  Check,
+  RefreshCw,
+  Send,
+  ExternalLink,
+  Loader2,
 } from 'lucide-react-native';
 
 export const FreelancerScreen: React.FC = () => {
@@ -39,7 +37,9 @@ export const FreelancerScreen: React.FC = () => {
   const [claimingJobId, setClaimingJobId] = useState<string | null>(null);
   const [claimSuccessMsg, setClaimSuccessMsg] = useState<string | null>(null);
 
-  const balanceInr = ausdBalance * fxRate;
+  const inrBalance = (ausdBalance * fxRate).toLocaleString('en-IN', {
+    maximumFractionDigits: 2,
+  });
 
   const handleClaim = async (jobId: string) => {
     setClaimingJobId(jobId);
@@ -49,7 +49,7 @@ export const FreelancerScreen: React.FC = () => {
       const res = await claimAdvance(jobId);
       if (res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setClaimSuccessMsg(`80% Advance claimed & deposited! Tx: ${res.txHash.slice(0, 10)}...`);
+        setClaimSuccessMsg(`80% Advance claimed & deposited on Monad!`);
         setTimeout(() => setClaimSuccessMsg(null), 4000);
       }
     } catch (err: any) {
@@ -59,211 +59,256 @@ export const FreelancerScreen: React.FC = () => {
     }
   };
 
-  if (!isConnected || !address) {
-    return (
-      <View style={styles.authPromptContainer}>
-        <Briefcase size={36} color={Colors.mint} />
-        <Text style={styles.authPromptTitle}>Freelancer Escrow Portal</Text>
-        <Text style={styles.authPromptSubtitle}>
-          Connect your passkey to view funded contracts, claim your 80% advance without gas fees, and cash out to INR.
-        </Text>
-        <TouchableOpacity
-          style={styles.connectPromptBtn}
-          onPress={connectTestnetPasskey}
-          activeOpacity={0.8}
-        >
-          <Zap size={16} color="#000" />
-          <Text style={styles.connectPromptBtnText}>⚡ 1-Click Testnet Passkey</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
     <ScrollView
-      style={styles.container}
+      style={styles.pageContainer}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* 1. BALANCE HERO CARD */}
-      <View style={styles.balanceCard}>
-        <View style={styles.balanceHeader}>
-          <Text style={styles.balanceLabel}>AVAILABLE ESCROW EARNINGS</Text>
-          <View style={styles.ratePill}>
-            <Text style={styles.ratePillText}>1 AUSD = ₹{fxRate.toFixed(2)}</Text>
-          </View>
+      {/* 1. PORTAL HERO (Matching web .portal-hero) */}
+      <View style={styles.portalHero}>
+        <View style={styles.darkEyebrow}>
+          <Sparkles size={11} color={Colors.mint} />
+          <Text style={styles.darkEyebrowText}>
+            NADRUPEE · FREELANCER DASHBOARD <Text style={styles.eyebrowSub}>MONAD TESTNET</Text>
+          </Text>
         </View>
 
-        <Text style={styles.balanceUsd}>
-          ${ausdBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
-          <Text style={styles.currencyCode}>AUSD</Text>
-        </Text>
+        <Text style={styles.portalH1Em}>Your earnings,</Text>
+        <Text style={styles.portalH1White}>ready when you are.</Text>
 
-        <Text style={styles.balanceInr}>
-          ≈ ₹{balanceInr.toLocaleString('en-IN', { maximumFractionDigits: 2 })} INR
+        <Text style={styles.portalDesc}>
+          Instant, escrow-backed payments settled in Agora AUSD on Monad Testnet and cashed out directly to your Indian bank account via UPI.
         </Text>
-
-        {/* Quick action buttons */}
-        <View style={styles.balanceActionsRow}>
-          <TouchableOpacity
-            style={styles.cashoutBtn}
-            onPress={() => setCashoutVisible(true)}
-            activeOpacity={0.8}
-          >
-            <Banknote size={15} color="#000" />
-            <Text style={styles.cashoutBtnText}>Instant Cash Out to Bank</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
-      {/* Success Notification */}
+      {/* Claim Success Banner */}
       {claimSuccessMsg && (
         <View style={styles.alertSuccess}>
-          <CheckCircle2 size={16} color={Colors.mint} />
+          <Check size={14} color={Colors.mint} />
           <Text style={styles.alertSuccessText}>{claimSuccessMsg}</Text>
         </View>
       )}
 
-      {/* 2. ACTIVE ESCROWS & 80% ADVANCE SECTION */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeaderRow}>
-          <View>
-            <Text style={styles.sectionTitle}>Funded Contracts</Text>
-            <Text style={styles.sectionSubtitle}>
-              Locked on Monad testnet · 80% claimable immediately
+      {/* 2. THREE TOP METRIC CARDS (Exact replica of web .portal-card) */}
+      <View style={styles.cardsStack}>
+        {/* Card 1: Available Earnings in INR */}
+        <View style={styles.portalCard}>
+          <View style={styles.portalCardHeader}>
+            <Text style={styles.portalLabel}>AVAILABLE EARNINGS</Text>
+            <View style={styles.badgeMint}>
+              <Check size={10} color={Colors.mintBright} />
+              <Text style={styles.badgeMintText}>Real-time Quote</Text>
+            </View>
+          </View>
+
+          <View style={styles.metricBlock}>
+            <Text style={styles.metricSubhead}>Estimated Value in INR</Text>
+            <Text style={styles.metricBigNumber}>₹{inrBalance}</Text>
+          </View>
+
+          <View style={styles.cardFooterRow}>
+            <View>
+              <Text style={styles.footerSubhead}>ON-CHAIN BALANCE</Text>
+              <Text style={styles.footerBalanceMint}>
+                {ausdBalance.toFixed(2)} AUSD
+              </Text>
+            </View>
+
+            <View style={styles.footerActions}>
+              <TouchableOpacity
+                style={styles.actionBtnDark}
+                onPress={() => setCashoutVisible(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.actionBtnDarkText}>Send AUSD</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => setCashoutVisible(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.actionBtnText}>Cash Out (OnMeta)</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Card 2: USD / INR Exchange Rate */}
+        <View style={styles.portalCard}>
+          <View style={styles.portalCardHeader}>
+            <Text style={styles.portalLabel}>USD / INR EXCHANGE RATE</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <RefreshCw size={11} color={Colors.mutedForeground} />
+              <Text style={styles.refreshText}>Refresh</Text>
+            </View>
+          </View>
+
+          <View style={styles.metricBlock}>
+            <Text style={styles.metricSubhead}>Guaranteed Cashout Rate</Text>
+            <Text style={[styles.metricBigNumber, { color: Colors.mint }]}>
+              1 USD = ₹{fxRate.toFixed(2)}
             </Text>
           </View>
-          <View style={styles.countBadge}>
-            <Text style={styles.countBadgeText}>{jobs.length} Active</Text>
+
+          <View style={styles.cardNoteRow}>
+            <Text style={styles.cardNoteText}>
+              Source: Open Exchange Rates API (strictly event-driven, zero synthetic ticks)
+            </Text>
+          </View>
+        </View>
+
+        {/* Card 3: Security & Protocol */}
+        <View style={styles.portalCard}>
+          <View style={styles.portalCardHeader}>
+            <Text style={styles.portalLabel}>SECURITY & PROTOCOL</Text>
+            <View style={styles.badgeMuted}>
+              <Text style={styles.badgeMutedText}>Facilitator Active</Text>
+            </View>
+          </View>
+
+          <View style={styles.securityStack}>
+            <View>
+              <Text style={styles.securityKey}>PASSKEY IDENTITY</Text>
+              <Text style={styles.securityVal}>
+                {isConnected ? 'Mera Biometric Passkey' : 'Unconnected'}
+              </Text>
+            </View>
+
+            <View>
+              <Text style={styles.securityKey}>GAS FEES</Text>
+              <Text style={[styles.securityVal, { color: Colors.mintBright }]}>
+                ₹0 — Sponsored by Monad Facilitator
+              </Text>
+            </View>
+
+            <View style={styles.contractRow}>
+              <Text style={styles.contractLabel}>Smart Contract:</Text>
+              <Text style={styles.contractCode}>
+                {ESCROW_CONTRACT_ADDRESS.slice(0, 8)}...{ESCROW_CONTRACT_ADDRESS.slice(-6)}
+              </Text>
+              <ExternalLink size={10} color={Colors.mutedForeground} />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* 3. CONTRACT ESCROWS (Matching web active jobs card) */}
+      <View style={[styles.portalCard, { marginTop: 24 }]}>
+        <View style={styles.portalCardHeader}>
+          <View>
+            <Text style={styles.sectionH2Em}>
+              Contract Escrows <Text style={styles.sectionH2White}>({jobs.length})</Text>
+            </Text>
+            <Text style={styles.sectionSubDesc}>
+              Jobs where your address is the designated freelancer. Funds are locked by the client before you begin work.
+            </Text>
           </View>
         </View>
 
         <View style={styles.jobsList}>
           {jobs.map((job) => {
+            const totalInr = (job.amountUsd * fxRate).toLocaleString('en-IN');
+            const advanceInr = (job.partialAmountUsd * fxRate).toLocaleString('en-IN');
             const isFunded = job.state === JobState.Funded;
             const isPartial = job.state === JobState.PartiallyReleased;
             const isCompleted = job.state === JobState.Completed;
             const isClaiming = claimingJobId === job.id;
 
             return (
-              <View key={job.id} style={styles.jobCard}>
-                <View style={styles.jobTopRow}>
-                  <Text style={styles.jobTitle}>{job.title}</Text>
+              <View key={job.id} style={styles.jobItemCard}>
+                <View style={styles.jobItemTop}>
+                  <Text style={styles.jobItemTitle}>{job.title}</Text>
                   <View
                     style={[
-                      styles.statusChip,
-                      isFunded && styles.statusFunded,
-                      isPartial && styles.statusPartial,
-                      isCompleted && styles.statusCompleted,
+                      styles.stateBadge,
+                      isCompleted || isPartial ? styles.badgeMint : styles.badgeMuted,
                     ]}
                   >
                     <Text
-                      style={[
-                        styles.statusChipText,
-                        isFunded && styles.statusFundedText,
-                        isPartial && styles.statusPartialText,
-                        isCompleted && styles.statusCompletedText,
-                      ]}
+                      style={
+                        isCompleted || isPartial ? styles.badgeMintText : styles.badgeMutedText
+                      }
                     >
-                      {isFunded ? 'Funded (Locked)' : isPartial ? '80% Claimed' : 'Completed'}
+                      {JOB_STATE_LABELS[job.state]}
                     </Text>
                   </View>
                 </View>
 
-                {/* Amount splits */}
-                <View style={styles.jobSplitsRow}>
-                  <View>
-                    <Text style={styles.splitLabel}>TOTAL ESCROW</Text>
-                    <Text style={styles.splitValue}>${job.amountUsd} AUSD</Text>
-                  </View>
-                  <View>
-                    <Text style={styles.splitLabel}>80% ADVANCE</Text>
-                    <Text style={[styles.splitValue, { color: Colors.mintBright }]}>
-                      ${job.partialAmountUsd} AUSD
-                    </Text>
-                  </View>
-                  <View>
-                    <Text style={styles.splitLabel}>20% REMAINDER</Text>
-                    <Text style={styles.splitValue}>${job.remainderAmountUsd} AUSD</Text>
-                  </View>
+                <View style={styles.jobItemMeta}>
+                  <Text style={styles.jobItemMetaText}>
+                    Client: <Text style={{ color: Colors.paper }}>{job.client.slice(0, 6)}...{job.client.slice(-4)}</Text>
+                  </Text>
+                  <Text style={styles.jobItemMetaText}>
+                    Total: <Text style={{ color: Colors.paper, fontWeight: '700' }}>₹{totalInr} ({job.amountUsd} AUSD)</Text>
+                  </Text>
+                  <Text style={styles.jobItemMetaText}>
+                    80% Advance: ₹{advanceInr}
+                  </Text>
                 </View>
 
-                {/* Claim CTA */}
-                {isFunded && (
-                  <TouchableOpacity
-                    style={styles.claimBtn}
-                    onPress={() => handleClaim(job.id)}
-                    disabled={isClaiming}
-                    activeOpacity={0.8}
-                  >
-                    {isClaiming ? (
-                      <ActivityIndicator color={Colors.mint} />
-                    ) : (
-                      <>
-                        <Zap size={14} color={Colors.mint} />
-                        <Text style={styles.claimBtnText}>
-                          Claim 80% Advance (${job.partialAmountUsd} AUSD) · 0 Gas
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                )}
+                {/* Actions */}
+                <View style={styles.jobActionsRow}>
+                  {isFunded && (
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() => handleClaim(job.id)}
+                      disabled={isClaiming}
+                      activeOpacity={0.8}
+                    >
+                      {isClaiming ? (
+                        <ActivityIndicator color={Colors.night} />
+                      ) : (
+                        <Text style={styles.actionBtnText}>Claim 80% Instant Payout</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
 
-                {isPartial && (
-                  <View style={styles.claimedNote}>
-                    <CheckCircle2 size={13} color={Colors.mint} />
-                    <Text style={styles.claimedNoteText}>
-                      80% Advance transferred. 20% milestone unlock pending client review.
-                    </Text>
-                  </View>
-                )}
+                  {isPartial && (
+                    <View style={styles.claimedRow}>
+                      <Check size={13} color={Colors.mintBright} />
+                      <Text style={styles.claimedText}>80% Advance Deposited</Text>
+                    </View>
+                  )}
+
+                  {isCompleted && (
+                    <View style={styles.claimedRow}>
+                      <Check size={13} color={Colors.mintBright} />
+                      <Text style={styles.claimedText}>100% Payout Finalized</Text>
+                    </View>
+                  )}
+                </View>
               </View>
             );
           })}
         </View>
       </View>
 
-      {/* 3. TRANSACTION LEDGER */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Transaction History</Text>
-        <Text style={styles.sectionSubtitle}>
-          Real-time onchain claims and IMPS bank payouts
-        </Text>
+      {/* 4. TRANSACTION LEDGER */}
+      <View style={[styles.portalCard, { marginTop: 24 }]}>
+        <View style={styles.portalCardHeader}>
+          <Text style={styles.sectionH2Em}>
+            Ledger & Activity <Text style={styles.sectionH2White}>({ledger.length})</Text>
+          </Text>
+        </View>
 
         <View style={styles.ledgerList}>
           {ledger.map((item) => (
-            <View key={item.id} style={styles.ledgerCard}>
-              <View style={styles.ledgerLeft}>
-                <View
-                  style={[
-                    styles.ledgerIconWrap,
-                    item.isCredit ? styles.ledgerIconCredit : styles.ledgerIconDebit,
-                  ]}
-                >
-                  {item.isCredit ? (
-                    <Zap size={14} color={Colors.mint} />
-                  ) : (
-                    <Banknote size={14} color={Colors.paper} />
+            <View key={item.id} style={styles.ledgerItem}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.ledgerItemDesc}>{item.description}</Text>
+                <View style={styles.ledgerMeta}>
+                  <Text style={styles.ledgerTime}>{item.timestamp}</Text>
+                  {item.referenceCode && (
+                    <Text style={styles.ledgerUtr}>UTR: {item.referenceCode}</Text>
                   )}
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.ledgerDesc} numberOfLines={1}>
-                    {item.description}
-                  </Text>
-                  <View style={styles.ledgerMetaRow}>
-                    <Text style={styles.ledgerTime}>{item.timestamp}</Text>
-                    {item.referenceCode && (
-                      <Text style={styles.ledgerRef}>Ref: {item.referenceCode}</Text>
-                    )}
-                  </View>
-                </View>
               </View>
-
-              <View style={styles.ledgerRight}>
+              <View style={{ alignItems: 'flex-end' }}>
                 <Text
                   style={[
                     styles.ledgerAmount,
-                    item.isCredit ? styles.ledgerAmountCredit : styles.ledgerAmountDebit,
+                    item.isCredit ? styles.amountCredit : styles.amountDebit,
                   ]}
                 >
                   {item.isCredit ? '+' : '-'}₹{item.amountInr.toLocaleString('en-IN')}
@@ -288,339 +333,344 @@ export const FreelancerScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  pageContainer: {
     flex: 1,
     backgroundColor: Colors.night,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 60,
   },
-  authPromptContainer: {
-    flex: 1,
-    backgroundColor: Colors.night,
+  portalHero: {
+    marginBottom: 24,
+  },
+  darkEyebrow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    gap: 12,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
+    alignSelf: 'flex-start',
+    marginBottom: 14,
   },
-  authPromptTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+  darkEyebrowText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(248, 250, 252, 0.75)',
+    letterSpacing: 0.5,
+  },
+  eyebrowSub: {
+    color: Colors.mutedForeground,
+    marginLeft: 4,
+  },
+  portalH1Em: {
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '500',
+    color: 'rgba(248, 250, 252, 0.5)',
+  },
+  portalH1White: {
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '500',
     color: Colors.paper,
-  },
-  authPromptSubtitle: {
-    fontSize: 13,
-    color: Colors.paperMuted,
-    textAlign: 'center',
-    lineHeight: 20,
     marginBottom: 10,
   },
-  connectPromptBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.mint,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  connectPromptBtnText: {
-    color: '#000',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  balanceCard: {
-    backgroundColor: Colors.nightElevated,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 20,
-  },
-  balanceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  balanceLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-    color: Colors.paperDim,
-  },
-  ratePill: {
-    backgroundColor: Colors.nightSoft,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-  },
-  ratePillText: {
-    color: Colors.mintBright,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  balanceUsd: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: Colors.paper,
-    letterSpacing: -0.6,
-  },
-  currencyCode: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.mint,
-  },
-  balanceInr: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.paperMuted,
-    marginTop: 2,
-    marginBottom: 16,
-  },
-  balanceActionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  cashoutBtn: {
-    flex: 1,
-    height: 46,
-    backgroundColor: Colors.mint,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  cashoutBtnText: {
-    color: '#000',
+  portalDesc: {
     fontSize: 13,
-    fontWeight: '800',
+    color: 'rgba(248, 250, 252, 0.65)',
+    lineHeight: 18,
+    maxWidth: 340,
   },
   alertSuccess: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: Colors.mintSoft,
+    backgroundColor: 'rgba(56, 217, 169, 0.12)',
     borderWidth: 1,
-    borderColor: Colors.mintBorder,
+    borderColor: 'rgba(56, 217, 169, 0.3)',
     padding: 12,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 18,
   },
   alertSuccessText: {
-    color: Colors.mintBright,
+    color: Colors.paper,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     flex: 1,
   },
-  section: {
-    marginBottom: 24,
+  cardsStack: {
+    gap: 16,
   },
-  sectionHeaderRow: {
+  portalCard: {
+    backgroundColor: Colors.nightCard,
+    borderWidth: 1,
+    borderColor: Colors.nightCardBorder,
+    borderRadius: 16,
+    padding: 20,
+  },
+  portalCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    paddingBottom: 14,
+    marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: Colors.paper,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: Colors.paperDim,
-    marginTop: 2,
-  },
-  countBadge: {
-    backgroundColor: Colors.nightSoft,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  countBadgeText: {
+  portalLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.paperMuted,
+    color: Colors.mutedForeground,
+    letterSpacing: 0.5,
+  },
+  badgeMint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(56, 217, 169, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  badgeMintText: {
+    color: Colors.mintBright,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  badgeMuted: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  badgeMutedText: {
+    color: 'rgba(248, 250, 252, 0.7)',
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  refreshText: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+  },
+  metricBlock: {
+    marginBottom: 16,
+  },
+  metricSubhead: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    marginBottom: 4,
+  },
+  metricBigNumber: {
+    fontSize: 34,
+    fontWeight: '500',
+    color: Colors.paper,
+  },
+  cardFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    paddingTop: 14,
+  },
+  footerSubhead: {
+    fontSize: 9,
+    color: Colors.mutedForeground,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  footerBalanceMint: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.mintBright,
+    marginTop: 2,
+  },
+  footerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionBtn: {
+    height: 34,
+    paddingHorizontal: 16,
+    borderRadius: 22,
+    backgroundColor: Colors.paper,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnText: {
+    color: Colors.night,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  actionBtnDark: {
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnDarkText: {
+    color: Colors.paper,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  cardNoteRow: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    paddingTop: 12,
+  },
+  cardNoteText: {
+    fontSize: 10,
+    color: Colors.mutedForeground,
+  },
+  securityStack: {
+    gap: 10,
+  },
+  securityKey: {
+    fontSize: 9,
+    color: Colors.mutedForeground,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  securityVal: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.paper,
+    marginTop: 2,
+  },
+  contractRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  contractLabel: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+  },
+  contractCode: {
+    fontSize: 11,
+    color: Colors.paper,
+    fontFamily: 'monospace',
+  },
+
+  // Jobs
+  sectionH2Em: {
+    fontSize: 17,
+    fontWeight: '500',
+    color: 'rgba(248, 250, 252, 0.5)',
+  },
+  sectionH2White: {
+    fontSize: 17,
+    fontWeight: '500',
+    color: Colors.paper,
+  },
+  sectionSubDesc: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    marginTop: 4,
   },
   jobsList: {
     gap: 12,
   },
-  jobCard: {
-    backgroundColor: Colors.nightElevated,
+  jobItemCard: {
     borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 16,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
     padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    gap: 10,
+  },
+  jobItemTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  jobItemTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.paper,
+    flex: 1,
+    marginRight: 8,
+  },
+  stateBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 14,
+  },
+  jobItemMeta: {
+    gap: 3,
+  },
+  jobItemMetaText: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+  },
+  jobActionsRow: {
+    paddingTop: 4,
+  },
+  claimedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  claimedText: {
+    fontSize: 11,
+    color: Colors.mintBright,
+    fontWeight: '600',
+  },
+
+  // Ledger
+  ledgerList: {
     gap: 12,
   },
-  jobTopRow: {
+  ledgerItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 8,
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
   },
-  jobTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.paper,
-    flex: 1,
-  },
-  statusChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  statusChipText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  statusFunded: {
-    backgroundColor: Colors.amberSoft,
-    borderWidth: 1,
-    borderColor: Colors.amber,
-  },
-  statusFundedText: {
-    color: Colors.amber,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  statusPartial: {
-    backgroundColor: Colors.mintSoft,
-    borderWidth: 1,
-    borderColor: Colors.mintBorder,
-  },
-  statusPartialText: {
-    color: Colors.mintBright,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  statusCompleted: {
-    backgroundColor: Colors.blueSoft,
-    borderWidth: 1,
-    borderColor: Colors.blue,
-  },
-  statusCompletedText: {
-    color: Colors.blue,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  jobSplitsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.nightSoft,
-    padding: 10,
-    borderRadius: 12,
-  },
-  splitLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: Colors.paperDim,
-    marginBottom: 2,
-  },
-  splitValue: {
+  ledgerItemDesc: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     color: Colors.paper,
   },
-  claimBtn: {
-    height: 42,
-    backgroundColor: Colors.mintSoft,
-    borderWidth: 1,
-    borderColor: Colors.mintBorder,
-    borderRadius: 12,
+  ledgerMeta: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  claimBtnText: {
-    color: Colors.mintBright,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  claimedNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingTop: 2,
-  },
-  claimedNoteText: {
-    fontSize: 11,
-    color: Colors.paperDim,
-    flex: 1,
-  },
-  ledgerList: {
-    gap: 8,
-    marginTop: 10,
-  },
-  ledgerCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: Colors.nightElevated,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 14,
-    padding: 12,
-  },
-  ledgerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 10,
-    flex: 1,
-    marginRight: 10,
-  },
-  ledgerIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ledgerIconCredit: {
-    backgroundColor: Colors.mintSoft,
-  },
-  ledgerIconDebit: {
-    backgroundColor: Colors.nightSoft,
-  },
-  ledgerDesc: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.paper,
-  },
-  ledgerMetaRow: {
-    flexDirection: 'row',
-    gap: 8,
     marginTop: 2,
   },
   ledgerTime: {
     fontSize: 10,
-    color: Colors.paperDim,
+    color: Colors.mutedForeground,
   },
-  ledgerRef: {
+  ledgerUtr: {
     fontSize: 10,
     color: Colors.mint,
     fontFamily: 'monospace',
   },
-  ledgerRight: {
-    alignItems: 'flex-end',
-  },
   ledgerAmount: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
   },
-  ledgerAmountCredit: {
+  amountCredit: {
     color: Colors.mintBright,
   },
-  ledgerAmountDebit: {
+  amountDebit: {
     color: Colors.paperMuted,
   },
   ledgerUsd: {

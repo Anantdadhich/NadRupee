@@ -18,7 +18,7 @@ function MainApp() {
   return (
     <View style={styles.appContainer}>
       <StatusBar style="light" />
-      <Header />
+      <Header activeTab={activeTab} onTabChange={setActiveTab} />
       <View style={styles.screenContainer}>
         {activeTab === 'home' && <HomeScreen onNavigateTab={setActiveTab} />}
         {activeTab === 'freelancer' && <FreelancerScreen />}

@@ -19,14 +19,11 @@ import { getRelayerHealth, getMonadBlockNumber, RelayerStatus } from '../service
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import {
-  Cpu,
+  Sparkles,
   RefreshCw,
-  CheckCircle2,
   Copy,
-  ExternalLink,
-  ShieldCheck,
-  Zap,
   Check,
+  ExternalLink,
 } from 'lucide-react-native';
 
 export const ProtocolScreen: React.FC = () => {
@@ -64,161 +61,170 @@ export const ProtocolScreen: React.FC = () => {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={styles.pageContainer}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* 1. HERO */}
-      <View style={styles.hero}>
-        <View style={styles.eyebrow}>
-          <Cpu size={11} color={Colors.mintBright} />
-          <Text style={styles.eyebrowText}>PROTOCOL LAB & DIAGNOSTICS</Text>
+      {/* 1. PORTAL HERO */}
+      <View style={styles.portalHero}>
+        <View style={styles.darkEyebrow}>
+          <Sparkles size={11} color={Colors.mint} />
+          <Text style={styles.darkEyebrowText}>
+            NADRUPEE · PROTOCOL LAB & DIAGNOSTICS <Text style={styles.eyebrowSub}>MONAD TESTNET</Text>
+          </Text>
         </View>
-        <Text style={styles.heroTitle}>
-          Onchain Health & <Text style={styles.heroHighlight}>Gasless Relayer</Text>
-        </Text>
-        <Text style={styles.heroSubtitle}>
-          Real-time diagnostics for Monad Testnet escrow contracts, Mera WebAuthn passkey signing, and sponsored gas relayers.
+
+        <Text style={styles.portalH1Em}>Protocol Diagnostics</Text>
+        <Text style={styles.portalH1White}>& Gasless Execution</Text>
+
+        <Text style={styles.portalDesc}>
+          Verify WebAuthn PRF passkey derivation, Agora AUSD testnet metrics, and gasless EIP-712 relayer execution.
         </Text>
       </View>
 
       {/* 2. RELAYER HEALTH CARD */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Zap size={16} color={Colors.mint} />
-            <Text style={styles.cardTitle}>Gasless Relayer Status</Text>
-          </View>
+      <View style={styles.portalCard}>
+        <View style={styles.portalCardHeader}>
+          <Text style={styles.portalLabel}>GASLESS RELAYER HEALTH</Text>
           <TouchableOpacity
-            style={styles.refreshBtn}
             onPress={fetchHealth}
             disabled={isRefreshing}
+            style={styles.refreshRow}
             activeOpacity={0.7}
           >
-            <RefreshCw
-              size={14}
-              color={Colors.paperMuted}
-              style={isRefreshing ? { opacity: 0.5 } : {}}
-            />
+            <RefreshCw size={11} color={Colors.mutedForeground} />
+            <Text style={styles.refreshText}>Refresh</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.metricRow}>
-          <Text style={styles.metricLabel}>Relayer Status</Text>
-          <View style={styles.statusTag}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusTagText}>Operational</Text>
+          <Text style={styles.metricKey}>Status:</Text>
+          <View style={styles.badgeMint}>
+            <Check size={10} color={Colors.mintBright} />
+            <Text style={styles.badgeMintText}>healthy</Text>
           </View>
         </View>
 
         <View style={styles.metricRow}>
-          <Text style={styles.metricLabel}>Relayer MON Reserve</Text>
-          <Text style={styles.metricValueHighlight}>
+          <Text style={styles.metricKey}>Relayer Address:</Text>
+          <TouchableOpacity
+            onPress={() => handleCopy('relayer', RELAYER_ADDRESS)}
+            style={styles.codeRow}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.codeText}>
+              {RELAYER_ADDRESS.slice(0, 8)}...{RELAYER_ADDRESS.slice(-6)}
+            </Text>
+            {copiedKey === 'relayer' ? (
+              <Check size={11} color={Colors.mint} />
+            ) : (
+              <Copy size={11} color={Colors.paperDim} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.metricRow}>
+          <Text style={styles.metricKey}>MON Balance:</Text>
+          <Text style={styles.metricValMint}>
             {relayerHealth ? `${relayerHealth.balanceMon} MON` : '9.5706 MON'}
           </Text>
         </View>
 
         <View style={styles.metricRow}>
-          <Text style={styles.metricLabel}>Monad Block Height</Text>
-          <Text style={styles.metricValue}>
+          <Text style={styles.metricKey}>Monad Block:</Text>
+          <Text style={styles.metricVal}>
             {blockNumber ? `#${blockNumber.toLocaleString()}` : '#1,948,201'}
           </Text>
         </View>
 
-        <View style={styles.addressBox}>
-          <Text style={styles.addressLabel}>RELAYER WALLET</Text>
-          <TouchableOpacity
-            style={styles.addressRow}
-            onPress={() => handleCopy('relayer', RELAYER_ADDRESS)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.addressText}>{RELAYER_ADDRESS}</Text>
-            {copiedKey === 'relayer' ? (
-              <Check size={14} color={Colors.mint} />
-            ) : (
-              <Copy size={14} color={Colors.paperDim} />
-            )}
-          </TouchableOpacity>
+        <View style={styles.cardNoteRow}>
+          <Text style={styles.cardNoteText}>
+            Relayer wallet is adequately funded and operational. Sponsored meta-transactions execute under 1 second.
+          </Text>
         </View>
       </View>
 
       {/* 3. VERIFIED CONTRACTS */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <ShieldCheck size={16} color={Colors.mint} />
-          <Text style={styles.cardTitle}>Monad Testnet Contracts</Text>
+      <View style={[styles.portalCard, { marginTop: 24 }]}>
+        <View style={styles.portalCardHeader}>
+          <Text style={styles.portalLabel}>MONAD TESTNET CONTRACTS</Text>
         </View>
 
-        {/* Escrow Contract */}
-        <View style={styles.contractItem}>
-          <View style={styles.contractHeader}>
-            <Text style={styles.contractName}>Escrow Contract (x402)</Text>
-            <Text style={styles.chainIdText}>Chain ID: {MONAD_CHAIN_ID}</Text>
+        <View style={styles.contractsList}>
+          {/* Escrow */}
+          <View style={styles.contractItem}>
+            <View style={styles.contractHeader}>
+              <Text style={styles.contractTitle}>Escrow Contract (x402)</Text>
+              <Text style={styles.contractChain}>Chain ID: {MONAD_CHAIN_ID}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => handleCopy('escrow', ESCROW_CONTRACT_ADDRESS)}
+              style={styles.codeFullRow}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.codeFullText}>{ESCROW_CONTRACT_ADDRESS}</Text>
+              {copiedKey === 'escrow' ? (
+                <Check size={12} color={Colors.mint} />
+              ) : (
+                <Copy size={12} color={Colors.paperDim} />
+              )}
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.addressRow}
-            onPress={() => handleCopy('escrow', ESCROW_CONTRACT_ADDRESS)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.addressText}>{ESCROW_CONTRACT_ADDRESS}</Text>
-            {copiedKey === 'escrow' ? (
-              <Check size={14} color={Colors.mint} />
-            ) : (
-              <Copy size={14} color={Colors.paperDim} />
-            )}
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.cardDivider} />
+          <View style={styles.divider} />
 
-        {/* Agora AUSD */}
-        <View style={styles.contractItem}>
-          <View style={styles.contractHeader}>
-            <Text style={styles.contractName}>Agora Dollar (AUSD)</Text>
-            <Text style={styles.chainIdText}>Decimals: 6</Text>
+          {/* Agora AUSD */}
+          <View style={styles.contractItem}>
+            <View style={styles.contractHeader}>
+              <Text style={styles.contractTitle}>Agora Dollar (AUSD)</Text>
+              <Text style={styles.contractChain}>Decimals: 6</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => handleCopy('ausd', AUSD_CONTRACT_ADDRESS)}
+              style={styles.codeFullRow}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.codeFullText}>{AUSD_CONTRACT_ADDRESS}</Text>
+              {copiedKey === 'ausd' ? (
+                <Check size={12} color={Colors.mint} />
+              ) : (
+                <Copy size={12} color={Colors.paperDim} />
+              )}
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.addressRow}
-            onPress={() => handleCopy('ausd', AUSD_CONTRACT_ADDRESS)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.addressText}>{AUSD_CONTRACT_ADDRESS}</Text>
-            {copiedKey === 'ausd' ? (
-              <Check size={14} color={Colors.mint} />
-            ) : (
-              <Copy size={14} color={Colors.paperDim} />
-            )}
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.cardDivider} />
+          <View style={styles.divider} />
 
-        {/* Monad RPC */}
-        <View style={styles.contractItem}>
-          <View style={styles.contractHeader}>
-            <Text style={styles.contractName}>Public JSON-RPC</Text>
-            <Text style={styles.chainIdText}>HTTP</Text>
+          {/* RPC */}
+          <View style={styles.contractItem}>
+            <View style={styles.contractHeader}>
+              <Text style={styles.contractTitle}>Public JSON-RPC</Text>
+              <Text style={styles.contractChain}>HTTP</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => handleCopy('rpc', MONAD_RPC_URL)}
+              style={styles.codeFullRow}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.codeFullText}>{MONAD_RPC_URL}</Text>
+              {copiedKey === 'rpc' ? (
+                <Check size={12} color={Colors.mint} />
+              ) : (
+                <Copy size={12} color={Colors.paperDim} />
+              )}
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.addressRow}
-            onPress={() => handleCopy('rpc', MONAD_RPC_URL)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.addressText}>{MONAD_RPC_URL}</Text>
-            {copiedKey === 'rpc' ? (
-              <Check size={14} color={Colors.mint} />
-            ) : (
-              <Copy size={14} color={Colors.paperDim} />
-            )}
-          </TouchableOpacity>
         </View>
       </View>
 
-      {/* 4. PASKEY CRYPTO SPECS */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Passkey Architecture</Text>
-        <Text style={styles.cardDesc}>
-          Mera passkeys use standard WebAuthn PRF (pseudo-random function) extensions to deterministically derive a 256-bit entropy seed (`m/44'/60'/0'/0/0`) stored solely in hardware enclaves.
+      {/* 4. PASSKEY PRF ARCHITECTURE */}
+      <View style={[styles.portalCard, { marginTop: 24 }]}>
+        <View style={styles.portalCardHeader}>
+          <Text style={styles.portalLabel}>PASSKEY CRYPTOGRAPHIC ARCHITECTURE</Text>
+        </View>
+
+        <Text style={styles.archDesc}>
+          Mera passkeys use standard WebAuthn PRF (pseudo-random function) extensions to deterministically derive a 256-bit entropy seed (m/44'/60'/0'/0/0) directly inside hardware enclaves.
         </Text>
 
         <View style={styles.specsGrid}>
@@ -245,146 +251,148 @@ export const ProtocolScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  pageContainer: {
     flex: 1,
     backgroundColor: Colors.night,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 60,
   },
-  hero: {
-    marginBottom: 20,
+  portalHero: {
+    marginBottom: 24,
   },
-  eyebrow: {
+  darkEyebrow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(56, 217, 169, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(56, 217, 169, 0.3)',
+    borderColor: 'rgba(56, 217, 169, 0.25)',
     alignSelf: 'flex-start',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 14,
+    marginBottom: 14,
+  },
+  darkEyebrowText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(248, 250, 252, 0.75)',
+    letterSpacing: 0.5,
+  },
+  eyebrowSub: {
+    color: Colors.mutedForeground,
+    marginLeft: 4,
+  },
+  portalH1Em: {
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '500',
+    color: 'rgba(248, 250, 252, 0.5)',
+  },
+  portalH1White: {
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '500',
+    color: Colors.paper,
     marginBottom: 10,
   },
-  eyebrowText: {
-    color: Colors.mintBright,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-  },
-  heroTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: Colors.paper,
-    lineHeight: 34,
-    letterSpacing: -0.6,
-    marginBottom: 8,
-  },
-  heroHighlight: {
-    color: Colors.mint,
-  },
-  heroSubtitle: {
+  portalDesc: {
     fontSize: 13,
-    color: Colors.paperMuted,
-    lineHeight: 20,
+    color: 'rgba(248, 250, 252, 0.65)',
+    lineHeight: 18,
   },
-  card: {
-    backgroundColor: Colors.nightElevated,
+  portalCard: {
+    backgroundColor: Colors.nightCard,
     borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 18,
-    gap: 12,
+    borderColor: Colors.nightCardBorder,
+    borderRadius: 16,
+    padding: 20,
   },
-  cardHeader: {
+  portalCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    paddingBottom: 14,
+    marginBottom: 14,
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.paper,
+  portalLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.mutedForeground,
+    letterSpacing: 0.5,
   },
-  cardDesc: {
-    fontSize: 12,
-    color: Colors.paperMuted,
-    lineHeight: 18,
+  refreshRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  refreshBtn: {
-    padding: 6,
-    borderRadius: 10,
-    backgroundColor: Colors.nightSoft,
+  refreshText: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
   },
   metricRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 8,
   },
-  metricLabel: {
+  metricKey: {
     fontSize: 12,
-    color: Colors.paperMuted,
+    color: Colors.mutedForeground,
   },
-  statusTag: {
+  badgeMint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(56, 217, 169, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  badgeMintText: {
+    color: Colors.mintBright,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  codeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.mintSoft,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.mint,
-  },
-  statusTagText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: Colors.mintBright,
-  },
-  metricValue: {
-    fontSize: 13,
-    fontWeight: '700',
+  codeText: {
     color: Colors.paper,
-  },
-  metricValueHighlight: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: Colors.mintBright,
-  },
-  addressBox: {
-    backgroundColor: Colors.nightSoft,
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 4,
-  },
-  addressLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: Colors.paperDim,
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  addressRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 8,
-  },
-  addressText: {
     fontSize: 11,
-    color: Colors.paper,
     fontFamily: 'monospace',
-    flex: 1,
+  },
+  metricVal: {
+    color: Colors.paper,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  metricValMint: {
+    color: Colors.mintBright,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  cardNoteRow: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    paddingTop: 12,
+    marginTop: 6,
+  },
+  cardNoteText: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    lineHeight: 16,
+  },
+  contractsList: {
+    gap: 12,
   },
   contractItem: {
     gap: 6,
@@ -394,43 +402,64 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  contractName: {
+  contractTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     color: Colors.paper,
   },
-  chainIdText: {
+  contractChain: {
     fontSize: 10,
-    color: Colors.mint,
-    fontWeight: '600',
+    color: Colors.mutedForeground,
   },
-  cardDivider: {
+  codeFullRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  codeFullText: {
+    fontSize: 10,
+    fontFamily: 'monospace',
+    color: Colors.paper,
+    flex: 1,
+    marginRight: 6,
+  },
+  divider: {
     height: 1,
-    backgroundColor: Colors.nightBorder,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  archDesc: {
+    fontSize: 12,
+    color: Colors.mutedForeground,
+    lineHeight: 18,
+    marginBottom: 14,
   },
   specsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 6,
   },
   specBox: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: Colors.nightSoft,
+    width: '48%',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 8,
     padding: 10,
-    borderRadius: 10,
-    gap: 2,
   },
   specKey: {
     fontSize: 9,
-    fontWeight: '800',
-    color: Colors.paperDim,
+    fontWeight: '700',
+    color: Colors.mutedForeground,
     letterSpacing: 0.5,
+    marginBottom: 2,
   },
   specVal: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     color: Colors.mintBright,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Dimensions,
 } from 'react-native';
 import { Colors } from '../theme/colors';
-import { useAccount } from '../context/AccountContext';
+import { BrandMark } from '../components/BrandMark';
 import * as Haptics from 'expo-haptics';
 import {
   Sparkles,
@@ -17,287 +16,344 @@ import {
   ShieldCheck,
   Check,
   Activity,
-  Zap,
-  Lock,
-  Banknote,
-  Coins,
+  IndianRupee,
 } from 'lucide-react-native';
-
-const { width } = Dimensions.get('window');
 
 interface Props {
   onNavigateTab: (tab: 'freelancer' | 'client' | 'offramp' | 'protocol') => void;
 }
 
 export const HomeScreen: React.FC<Props> = ({ onNavigateTab }) => {
-  const { fxRate } = useAccount();
-
-  // Interactive Calculator State
-  const [calcAmountUsd, setCalcAmountUsd] = useState<number>(1000);
-
-  const instantAdvanceUsd = calcAmountUsd * 0.8;
-  const remainderUsd = calcAmountUsd * 0.2;
-  const instantAdvanceInr = instantAdvanceUsd * fxRate;
-  const remainderInr = remainderUsd * fxRate;
-
-  const handleSelectCalc = (amount: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setCalcAmountUsd(amount);
-  };
-
   return (
     <ScrollView
-      style={styles.container}
+      style={styles.pageContainer}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* 1. HERO SECTION */}
-      <View style={styles.hero}>
-        <View style={styles.eyebrow}>
-          <Sparkles size={11} color={Colors.mintBright} />
-          <Text style={styles.eyebrowText}>NADRUPEE · BUILT ON MONAD TESTNET</Text>
-        </View>
-
-        <Text style={styles.heroTitle}>
-          Get paid the moment <Text style={styles.heroHighlight}>work is funded.</Text>
-        </Text>
-
-        <Text style={styles.heroSubtitle}>
-          Instant, escrow-backed payments for Indian freelancers working with global clients —
-          settled onchain in AUSD, cashed out to your bank via UPI in &lt;60s.
-        </Text>
-
-        {/* CTA Buttons */}
-        <View style={styles.heroCtaRow}>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => onNavigateTab('freelancer')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.primaryBtnText}>Freelancer Portal</Text>
-            <ArrowRight size={14} color="#000" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={() => onNavigateTab('client')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.secondaryBtnText}>Client Portal</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Hero Visual Banner */}
-        <View style={styles.heroImageCard}>
-          <Image
-            source={require('../../assets/nadrupee-hero.png')}
-            style={styles.heroImage}
-            resizeMode="cover"
-          />
-          <View style={styles.heroOverlayPill}>
-            <Zap size={12} color={Colors.mintBright} />
-            <Text style={styles.heroOverlayText}>80% Instant Advance · 0 Gas Fees</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* 2. STATS ROW */}
-      <View style={styles.statsGrid}>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>80%</Text>
-          <Text style={styles.statLabel}>Instant Advance</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={[styles.statNumber, { color: Colors.mintBright }]}>₹0</Text>
-          <Text style={styles.statLabel}>Gas (Relayer)</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>&lt;60s</Text>
-          <Text style={styles.statLabel}>Bank IMPS Settle</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>0.5%</Text>
-          <Text style={styles.statLabel}>Flat Platform Fee</Text>
-        </View>
-      </View>
-
-      {/* 3. INTERACTIVE ESCROW & ADVANCE CALCULATOR */}
-      <View style={styles.calcSection}>
-        <View style={styles.sectionHeader}>
-          <View style={styles.smallEyebrow}>
-            <Coins size={10} color={Colors.mint} />
-            <Text style={styles.smallEyebrowText}>INTERACTIVE CALCULATOR</Text>
-          </View>
-          <Text style={styles.sectionTitle}>See your guaranteed payout</Text>
-          <Text style={styles.sectionSubtitle}>
-            When a client locks escrow on Monad, 80% is unlocked immediately for you to cash out.
+      {/* 1. HERO SECTION (Matching web .hero & .hero-content) */}
+      <View style={styles.heroSection}>
+        {/* Dark Eyebrow */}
+        <View style={styles.darkEyebrow}>
+          <Sparkles size={11} color={Colors.mint} />
+          <Text style={styles.darkEyebrowText}>
+            NADRUPEE · BUILT ON MONAD <Text style={styles.eyebrowSub}>TESTNET</Text>
           </Text>
         </View>
 
-        <View style={styles.calcCard}>
-          <Text style={styles.calcFieldLabel}>SELECT CLIENT CONTRACT VALUE</Text>
-          <View style={styles.presetRow}>
-            {[500, 1000, 2500, 5000].map((amt) => (
-              <TouchableOpacity
-                key={amt}
-                onPress={() => handleSelectCalc(amt)}
-                style={[
-                  styles.presetChip,
-                  calcAmountUsd === amt && styles.presetChipActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.presetChipText,
-                    calcAmountUsd === amt && styles.presetChipTextActive,
-                  ]}
-                >
-                  ${amt}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        {/* Hero Heading: em muted 50%, main text clean white */}
+        <View style={styles.heroHeadingWrap}>
+          <Text style={styles.heroH1Em}>Get paid the moment</Text>
+          <Text style={styles.heroH1White}>work is funded.</Text>
+        </View>
 
-          {/* Breakdown Rows */}
-          <View style={styles.breakdownWrap}>
-            <View style={styles.breakdownRow}>
-              <View style={styles.breakdownLabelGroup}>
-                <View style={[styles.dotIndicator, { backgroundColor: Colors.mint }]} />
-                <Text style={styles.breakdownTitle}>80% Instant Advance</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.breakdownValMint}>
-                  ₹{instantAdvanceInr.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                </Text>
-                <Text style={styles.breakdownSub}>(${instantAdvanceUsd.toFixed(0)} AUSD)</Text>
-              </View>
-            </View>
+        {/* Hero Paragraph */}
+        <Text style={styles.heroParagraph}>
+          Instant, escrow-backed payments for Indian freelancers working with global clients —
+          settled onchain, cashed out to your bank, no wallet required.
+        </Text>
 
-            <View style={styles.calcDivider} />
-
-            <View style={styles.breakdownRow}>
-              <View style={styles.breakdownLabelGroup}>
-                <View style={[styles.dotIndicator, { backgroundColor: Colors.paperDim }]} />
-                <Text style={styles.breakdownTitle}>20% Milestone Remainder</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.breakdownVal}>
-                  ₹{remainderInr.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                </Text>
-                <Text style={styles.breakdownSub}>(${remainderUsd.toFixed(0)} AUSD)</Text>
-              </View>
-            </View>
-          </View>
-
+        {/* Button Row */}
+        <View style={styles.buttonRow}>
           <TouchableOpacity
-            style={styles.calcCta}
-            onPress={() => onNavigateTab('freelancer')}
+            style={styles.actionBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onNavigateTab('freelancer');
+            }}
             activeOpacity={0.8}
           >
-            <Text style={styles.calcCtaText}>Claim Advance on Live Escrows</Text>
-            <ArrowRight size={14} color={Colors.mintBright} />
+            <Text style={styles.actionBtnText}>Get Started</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.textLink}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onNavigateTab('freelancer');
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.textLinkText}>See how it works</Text>
+            <ArrowRight size={13} color="rgba(248, 250, 252, 0.7)" />
           </TouchableOpacity>
         </View>
+
+        {/* Hero Product Graphic with Radial Mint Glow */}
+        <View style={styles.heroProductWrap}>
+          <View style={styles.radialGlow} />
+          <Image
+            source={require('../../assets/nadrupee-hero.png')}
+            style={styles.heroProductImg}
+            resizeMode="contain"
+          />
+        </View>
       </View>
 
-      {/* 4. KEY FEATURES CARDS */}
+      {/* 2. KEY FEATURES SECTION (Matching web .features & .feature-grid) */}
       <View style={styles.featuresSection}>
-        <View style={styles.smallEyebrow}>
-          <ShieldCheck size={10} color={Colors.mint} />
-          <Text style={styles.smallEyebrowText}>ZERO RISK PROTOCOL</Text>
+        <View style={styles.sectionHeading}>
+          <View style={styles.eyebrow}>
+            <Sparkles size={11} color={Colors.mutedForeground} />
+            <Text style={styles.eyebrowText}>KEY FEATURES</Text>
+          </View>
+          <Text style={styles.sectionH2Em}>NadRupee was built to remove</Text>
+          <Text style={styles.sectionH2White}>the two things that hurt freelancers most</Text>
+          <Text style={styles.sectionDesc}>
+            Getting paid shouldn't require trust, delay, or a crash course in crypto.
+          </Text>
         </View>
-        <Text style={styles.sectionTitle}>
-          Built to remove the two things that hurt freelancers most
-        </Text>
-        <Text style={styles.sectionSubtitle}>
-          Payment delays and non-payment risk. Verified transparently on Monad.
-        </Text>
 
-        <View style={styles.featureCardsCol}>
-          {/* Card 1 */}
-          <View style={styles.featureCard}>
-            <View style={styles.featureIconWrap}>
-              <Lock size={18} color={Colors.mint} />
+        {/* Feature Photo */}
+        <View style={styles.photoCard}>
+          <Image
+            source={require('../../assets/assets/freelancer-desk.jpg')}
+            style={styles.photoImg}
+            resizeMode="cover"
+          />
+        </View>
+
+        {/* Funding Card (Exact replica of web .funding-card & .funding-widget) */}
+        <View style={styles.fundingCard}>
+          <Text style={styles.cardH3}>Certainty before you start</Text>
+          <Text style={styles.cardDesc}>
+            Your client locks payment in escrow before work begins — visible onchain.
+          </Text>
+
+          <View style={styles.fundingWidget}>
+            <Text style={styles.widgetSub}>JOB ESCROW · ACME STUDIO</Text>
+            <Text style={styles.widgetAmount}>₹68,000</Text>
+
+            <View style={styles.chipsRow}>
+              <View style={styles.chip}>
+                <Text style={styles.chipText}>Locked</Text>
+              </View>
+              <View style={styles.chip}>
+                <Check size={10} color={Colors.mint} />
+                <Text style={[styles.chipText, { color: Colors.mint }]}>Onchain</Text>
+              </View>
             </View>
-            <Text style={styles.featureTitle}>Certainty Before You Start</Text>
-            <Text style={styles.featureDesc}>
-              Your client deposits Agora AUSD into the smart escrow contract before you write a single line of code.
-            </Text>
-            <View style={styles.featureMetaRow}>
-              <Check size={12} color={Colors.mint} />
-              <Text style={styles.featureMetaText}>On-chain Escrow Verified</Text>
+
+            {/* Range Bar */}
+            <View style={styles.rangeTrack}>
+              <View style={styles.rangeFill} />
+            </View>
+            <View style={styles.rangeLabelRow}>
+              <Text style={styles.rangeLabel}>80% INSTANT</Text>
+              <Text style={styles.rangeLabel}>20% ON COMPLETION</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.widgetBtn}
+              onPress={() => onNavigateTab('client')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.widgetBtnText}>Confirmed</Text>
+              <Check size={12} color="#f8fafc" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Lifetime bar */}
+          <View style={styles.lifetimeBar}>
+            <IndianRupee size={18} color={Colors.paper} />
+            <View>
+              <Text style={styles.lifetimeSub}>INSTANT RELEASE · 80%</Text>
+              <Text style={styles.lifetimeAmount}>₹54,400</Text>
+            </View>
+            <View style={styles.lifetimeMeter}>
+              <View style={styles.lifetimeFill} />
+            </View>
+          </View>
+        </View>
+
+        {/* Risk Card (Exact replica of web .risk-card & .risk-chart) */}
+        <View style={styles.riskCard}>
+          <View style={styles.cardTopline}>
+            <Text style={styles.toplineText}>REDUCING RISK WITH NADRUPEE</Text>
+            <Text style={styles.toplineTag}>Compare scenarios</Text>
+          </View>
+
+          <Text style={styles.cardH3}>Payment risk</Text>
+
+          {/* 3-Column Risk Chart */}
+          <View style={styles.riskChart}>
+            <View style={[styles.riskCol, styles.riskColPartial]}>
+              <Text style={styles.riskColB}>50%</Text>
+              <Text style={styles.riskColSpan}>PARTIAL DEPOSIT</Text>
+            </View>
+            <View style={[styles.riskCol, styles.riskColDanger]}>
+              <Text style={styles.riskColB}>100%</Text>
+              <Text style={styles.riskColSpan}>NO ESCROW</Text>
+            </View>
+            <View style={[styles.riskCol, styles.riskColSafe]}>
+              <Text style={[styles.riskColB, { color: Colors.mintBright }]}>~0%</Text>
+              <Text style={[styles.riskColSpan, { color: Colors.mint }]}>NADRUPEE</Text>
             </View>
           </View>
 
-          {/* Card 2 */}
-          <View style={styles.featureCard}>
-            <View style={styles.featureIconWrap}>
-              <Zap size={18} color={Colors.mint} />
-            </View>
-            <Text style={styles.featureTitle}>Zero Seed Phrases / Passkey Native</Text>
-            <Text style={styles.featureDesc}>
-              Log in seamlessly using Mera WebAuthn PRF passkeys. Sign on-chain releases using Touch ID or Face ID.
-            </Text>
-            <View style={styles.featureMetaRow}>
-              <Check size={12} color={Colors.mint} />
-              <Text style={styles.featureMetaText}>No Private Key Leaks</Text>
+          <Text style={[styles.cardH3, { marginTop: 14 }]}>Full payment locked</Text>
+          <Text style={styles.cardDesc}>
+            Funds are locked before work starts and 80% releases instantly on confirmation.
+          </Text>
+        </View>
+      </View>
+
+      {/* 3. TESTIMONIALS SECTION (Matching web .industry & .founder-card) */}
+      <View style={styles.industrySection}>
+        <View style={styles.eyebrow}>
+          <Text style={styles.eyebrowText}>INDUSTRY</Text>
+        </View>
+        <Text style={styles.sectionH2White}>Freelancers on NadRupee say</Text>
+
+        <View style={styles.foundersList}>
+          {/* Founder 1 */}
+          <View style={styles.founderCard}>
+            <Image
+              source={require('../../assets/assets/founder-curly.jpg')}
+              style={styles.founderImg}
+              resizeMode="cover"
+            />
+            <View style={styles.founderCaption}>
+              <Text style={styles.founderQuote}>
+                “I used to wait three weeks after a project shipped. Now I see the money the second the client confirms.”
+              </Text>
+              <Text style={styles.founderName}>Early user</Text>
+              <Text style={styles.founderCo}>Web development</Text>
             </View>
           </View>
 
-          {/* Card 3 */}
-          <View style={styles.featureCard}>
-            <View style={styles.featureIconWrap}>
-              <Banknote size={18} color={Colors.mint} />
+          {/* Founder 2 */}
+          <View style={styles.founderCard}>
+            <Image
+              source={require('../../assets/assets/founder-office.jpg')}
+              style={styles.founderImg}
+              resizeMode="cover"
+            />
+            <View style={styles.founderCaption}>
+              <Text style={styles.founderQuote}>
+                “I don't have to explain crypto to my clients. They just pay, and I just get paid.”
+              </Text>
+              <Text style={styles.founderName}>Early user</Text>
+              <Text style={styles.founderCo}>Design</Text>
             </View>
-            <Text style={styles.featureTitle}>Instant UPI & IMPS Cashout</Text>
-            <Text style={styles.featureDesc}>
-              Sell your AUSD directly to Indian Rupees. Automated RBI & FIU-IND compliant settlement with real UTR receipts.
+          </View>
+
+          {/* Founder 3 */}
+          <View style={styles.founderCard}>
+            <Image
+              source={require('../../assets/assets/founder-outdoor.jpg')}
+              style={styles.founderImg}
+              resizeMode="cover"
+            />
+            <View style={styles.founderCaption}>
+              <Text style={styles.founderQuote}>
+                “The first time I saw the escrow lock happen live, I actually trusted the process for once.”
+              </Text>
+              <Text style={styles.founderName}>Early user</Text>
+              <Text style={styles.founderCo}>Content</Text>
+            </View>
+          </View>
+
+          {/* Stat Card */}
+          <View style={styles.industryStatCard}>
+            <Text style={styles.industryStatNumber}>~60s</Text>
+            <Text style={styles.industryStatDesc}>
+              average time from escrow release to stablecoins in wallet
             </Text>
-            <View style={styles.featureMetaRow}>
-              <Check size={12} color={Colors.mint} />
-              <Text style={styles.featureMetaText}>&lt;60s Bank Delivery</Text>
-            </View>
           </View>
         </View>
       </View>
 
-      {/* 5. RISK COMPARISON */}
-      <View style={styles.riskCard}>
-        <Text style={styles.smallEyebrowText}>PAYMENT RISK COMPARISON</Text>
-        <Text style={styles.riskTitle}>How NadRupee eliminates payment defaults</Text>
+      {/* 4. PLATFORM INFRASTRUCTURE (Matching web .platform & .dashboard-stack) */}
+      <View style={styles.platformSection}>
+        <View style={styles.darkEyebrow}>
+          <Activity size={11} color={Colors.mint} />
+          <Text style={styles.darkEyebrowText}>PAYMENT INFRASTRUCTURE</Text>
+        </View>
 
-        <View style={styles.riskBarsWrap}>
-          <View style={styles.riskBarItem}>
-            <Text style={styles.riskBarLabel}>Traditional Net-30</Text>
-            <View style={styles.riskBarOuter}>
-              <View style={[styles.riskBarInner, { width: '100%', backgroundColor: Colors.danger }]} />
+        <Text style={styles.sectionH2Em}>Built for</Text>
+        <Text style={styles.sectionH2White}>real-time settlement</Text>
+
+        <Text style={styles.sectionDesc}>
+          Every payment runs through Monad's x402 protocol. Gas is covered by the facilitator — freelancers never pay network fees.
+        </Text>
+
+        {/* Dashboard Stack */}
+        <View style={styles.dashboardStack}>
+          {/* Main Feed Card */}
+          <View style={styles.dashMainCard}>
+            <View style={styles.dashHeaderRow}>
+              <BrandMark compact />
+              <Text style={styles.dashFeedTitle}>Live transaction feed · Envio</Text>
             </View>
-            <Text style={[styles.riskBarVal, { color: Colors.danger }]}>100% Risk</Text>
+            <View style={styles.metricWrap}>
+              <Text style={styles.metricLabel}>Escrow locked</Text>
+              <Text style={styles.metricAmount}>₹42,000</Text>
+            </View>
+            {/* 7 Vertical Indicator Bars */}
+            <View style={styles.barsRow}>
+              {[28, 42, 35, 62, 54, 79, 70].map((h, i) => (
+                <View key={i} style={[styles.dashBar, { height: `${h}%` }]} />
+              ))}
+            </View>
           </View>
 
-          <View style={styles.riskBarItem}>
-            <Text style={styles.riskBarLabel}>Partial Deposit</Text>
-            <View style={styles.riskBarOuter}>
-              <View style={[styles.riskBarInner, { width: '50%', backgroundColor: Colors.amber }]} />
-            </View>
-            <Text style={[styles.riskBarVal, { color: Colors.amber }]}>50% Risk</Text>
+          {/* Dash Small Card */}
+          <View style={styles.dashSmallCard}>
+            <ShieldCheck size={20} color={Colors.mint} />
+            <Text style={styles.dashSmallLabel}>Partial released (80%)</Text>
+            <Text style={styles.dashSmallAmount}>₹33,600</Text>
           </View>
 
-          <View style={styles.riskBarItem}>
-            <Text style={styles.riskBarLabel}>NadRupee Escrow</Text>
-            <View style={styles.riskBarOuter}>
-              <View style={[styles.riskBarInner, { width: '4%', backgroundColor: Colors.mint }]} />
-            </View>
-            <Text style={[styles.riskBarVal, { color: Colors.mintBright }]}>~0% Risk</Text>
+          {/* Dash Toolkit Grid */}
+          <View style={styles.dashToolkitGrid}>
+            {[
+              ['Finality', '<1s'],
+              ['Off-ramp', 'Onmeta'],
+              ['Gas fees', '₹0'],
+              ['Cash out', 'UPI'],
+            ].map(([k, v]) => (
+              <View key={k} style={styles.toolkitItem}>
+                <Text style={styles.toolkitKey}>{k}</Text>
+                <Text style={styles.toolkitVal}>{v}</Text>
+              </View>
+            ))}
           </View>
         </View>
       </View>
 
-      {/* 6. PROTOCOL RAILS BANNER */}
-      <View style={styles.railsCard}>
-        <Activity size={16} color={Colors.mint} />
-        <Text style={styles.railsText}>
-          SECURED BY MONAD · AGORA AUSD · MERA PASSKEYS · ONMETA OFF-RAMP
+      {/* 5. BUILT FOR TRUST & STATEMENT (Matching web .ambition & .statement) */}
+      <View style={styles.ambitionSection}>
+        <View style={styles.eyebrow}>
+          <Sparkles size={11} color={Colors.mutedForeground} />
+          <Text style={styles.eyebrowText}>BUILT FOR TRUST, NOT JUST SPEED</Text>
+        </View>
+
+        <Text style={styles.sectionH2Em}>At the core of NadRupee is</Text>
+        <Text style={styles.sectionH2White}>a commitment to verifiable payments</Text>
+
+        <View style={styles.growthCard}>
+          <Text style={styles.growthTag}>LOG IN WITH A PASSKEY</Text>
+          <Text style={styles.growthNumber}>0 seed phrases</Text>
+          <Text style={styles.growthDesc}>
+            Mera passkey identity, AUSD stablecoins by Agora, and licensed INR payouts to your bank via UPI.
+          </Text>
+        </View>
+
+        <View style={styles.photoCard}>
+          <Image
+            source={require('../../assets/assets/freelancer-phone.jpg')}
+            style={styles.photoImg}
+            resizeMode="cover"
+          />
+        </View>
+      </View>
+
+      {/* 6. STATEMENT BANNER */}
+      <View style={styles.statementBanner}>
+        <BrandMark compact />
+        <Text style={styles.statementH2Em}>NadRupee — get paid your way:</Text>
+        <Text style={styles.statementH2White}>
+          payments that work the way freelancers actually need them to
         </Text>
       </View>
     </ScrollView>
@@ -305,378 +361,581 @@ export const HomeScreen: React.FC<Props> = ({ onNavigateTab }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  pageContainer: {
     flex: 1,
     backgroundColor: Colors.night,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
-  hero: {
-    paddingTop: 16,
+  // 1. Hero
+  heroSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 36,
+    alignItems: 'center',
+    textAlign: 'center',
+  },
+  darkEyebrow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
+    marginBottom: 20,
+  },
+  darkEyebrowText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(248, 250, 252, 0.75)',
+    letterSpacing: 0.5,
+  },
+  eyebrowSub: {
+    color: Colors.mutedForeground,
+    marginLeft: 6,
+  },
+  heroHeadingWrap: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  heroH1Em: {
+    fontSize: 34,
+    lineHeight: 38,
+    fontWeight: '500',
+    color: 'rgba(248, 250, 252, 0.5)',
+    textAlign: 'center',
+  },
+  heroH1White: {
+    fontSize: 34,
+    lineHeight: 38,
+    fontWeight: '500',
+    color: Colors.paper,
+    textAlign: 'center',
+  },
+  heroParagraph: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: 'rgba(248, 250, 252, 0.65)',
+    textAlign: 'center',
+    maxWidth: 340,
+    marginBottom: 24,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+    marginBottom: 28,
+  },
+  actionBtn: {
+    height: 38,
+    paddingHorizontal: 22,
+    borderRadius: 22,
+    backgroundColor: Colors.paper,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnText: {
+    color: Colors.night,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  textLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  textLinkText: {
+    color: 'rgba(248, 250, 252, 0.7)',
+    fontSize: 12,
+  },
+  heroProductWrap: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    marginTop: 10,
+  },
+  radialGlow: {
+    position: 'absolute',
+    width: 260,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(56, 217, 169, 0.18)',
+  },
+  heroProductImg: {
+    width: '100%',
+    height: 220,
+  },
+
+  // 2. Key Features
+  featuresSection: {
+    paddingHorizontal: 20,
+    paddingTop: 36,
     paddingBottom: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  sectionHeading: {
+    marginBottom: 20,
   },
   eyebrow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(56, 217, 169, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 217, 169, 0.3)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 14,
-    marginBottom: 12,
-  },
-  eyebrowText: {
-    color: Colors.mintBright,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-  },
-  heroTitle: {
-    fontSize: 30,
-    fontWeight: '900',
-    color: Colors.paper,
-    lineHeight: 38,
-    letterSpacing: -0.8,
     marginBottom: 10,
   },
-  heroHighlight: {
-    color: Colors.mint,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: Colors.paperMuted,
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  heroCtaRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 24,
-  },
-  primaryBtn: {
-    flex: 1,
-    height: 48,
-    backgroundColor: Colors.mint,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  primaryBtnText: {
-    color: '#000',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  secondaryBtn: {
-    flex: 1,
-    height: 48,
-    backgroundColor: Colors.nightElevated,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryBtnText: {
-    color: Colors.paper,
-    fontSize: 14,
+  eyebrowText: {
+    fontSize: 10,
     fontWeight: '700',
+    color: Colors.mutedForeground,
+    letterSpacing: 0.5,
   },
-  heroImageCard: {
-    width: '100%',
-    height: 200,
-    borderRadius: 18,
+  sectionH2Em: {
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '500',
+    color: 'rgba(248, 250, 252, 0.5)',
+  },
+  sectionH2White: {
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '500',
+    color: Colors.paper,
+    marginBottom: 10,
+  },
+  sectionDesc: {
+    fontSize: 13,
+    color: Colors.mutedForeground,
+    lineHeight: 18,
+  },
+  photoCard: {
+    height: 220,
+    borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    position: 'relative',
+    marginBottom: 16,
   },
-  heroImage: {
+  photoImg: {
     width: '100%',
     height: '100%',
   },
-  heroOverlayPill: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-    right: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(14, 23, 24, 0.88)',
+  fundingCard: {
+    backgroundColor: Colors.nightCard,
     borderWidth: 1,
-    borderColor: 'rgba(56, 217, 169, 0.35)',
-    paddingVertical: 7,
-    borderRadius: 12,
+    borderColor: Colors.nightCardBorder,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
   },
-  heroOverlayText: {
-    color: Colors.mintBright,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 24,
-  },
-  statBox: {
-    width: (width - 40) / 2,
-    backgroundColor: Colors.nightElevated,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 14,
-    padding: 14,
-  },
-  statNumber: {
+  cardH3: {
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: '500',
     color: Colors.paper,
-    marginBottom: 3,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: Colors.paperDim,
-  },
-  calcSection: {
-    marginBottom: 28,
-  },
-  sectionHeader: {
-    marginBottom: 14,
-  },
-  smallEyebrow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
     marginBottom: 4,
   },
-  smallEyebrowText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-    color: Colors.mint,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.paper,
-    letterSpacing: -0.4,
-    marginBottom: 6,
-  },
-  sectionSubtitle: {
+  cardDesc: {
     fontSize: 12,
-    color: Colors.paperMuted,
-    lineHeight: 18,
+    color: Colors.mutedForeground,
+    lineHeight: 16,
   },
-  calcCard: {
-    backgroundColor: Colors.nightElevated,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 18,
-    padding: 16,
+  fundingWidget: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 18,
+    alignItems: 'center',
   },
-  calcFieldLabel: {
-    fontSize: 10,
-    fontWeight: '800',
+  widgetSub: {
+    fontSize: 9,
+    color: '#64748b',
+    fontWeight: '600',
     letterSpacing: 0.5,
-    color: Colors.paperDim,
-    marginBottom: 10,
   },
-  presetRow: {
+  widgetAmount: {
+    fontSize: 32,
+    fontWeight: '500',
+    color: '#0f1718',
+    marginVertical: 4,
+  },
+  chipsRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 18,
-  },
-  presetChip: {
-    flex: 1,
-    height: 38,
-    backgroundColor: Colors.nightSoft,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  presetChipActive: {
-    borderColor: Colors.mint,
-    backgroundColor: Colors.mintSoft,
-  },
-  presetChipText: {
-    color: Colors.paperMuted,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  presetChipTextActive: {
-    color: Colors.mintBright,
-  },
-  breakdownWrap: {
-    backgroundColor: Colors.nightSoft,
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    gap: 12,
     marginBottom: 14,
   },
-  breakdownRow: {
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  chipText: {
+    fontSize: 10,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  rangeTrack: {
+    width: '100%',
+    height: 4,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 2,
+    marginTop: 8,
+    position: 'relative',
+  },
+  rangeFill: {
+    width: '80%',
+    height: '100%',
+    backgroundColor: Colors.mint,
+    borderRadius: 2,
+  },
+  rangeLabelRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
+  rangeLabel: {
+    fontSize: 8,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  widgetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#0f1718',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 18,
+    marginTop: 16,
+  },
+  widgetBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  lifetimeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.nightSoft,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 14,
+  },
+  lifetimeSub: {
+    fontSize: 8,
+    color: Colors.paperDim,
+  },
+  lifetimeAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.paper,
+  },
+  lifetimeMeter: {
+    flex: 1,
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
+    marginLeft: 10,
+    overflow: 'hidden',
+  },
+  lifetimeFill: {
+    width: '80%',
+    height: '100%',
+    backgroundColor: Colors.mint,
+  },
+
+  // Risk card
+  riskCard: {
+    backgroundColor: Colors.nightCard,
+    borderWidth: 1,
+    borderColor: Colors.nightCardBorder,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+  },
+  cardTopline: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
-  breakdownLabelGroup: {
+  toplineText: {
+    fontSize: 8,
+    color: Colors.mutedForeground,
+    fontWeight: '700',
+  },
+  toplineTag: {
+    fontSize: 8,
+    color: Colors.paperDim,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  riskChart: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 180,
+    gap: 8,
+    marginVertical: 14,
+  },
+  riskCol: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 8,
+    justifyContent: 'flex-start',
+  },
+  riskColPartial: {
+    height: '58%',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  riskColDanger: {
+    height: '95%',
+    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+    borderColor: 'rgba(244, 63, 94, 0.3)',
+  },
+  riskColSafe: {
+    height: '35%',
+    backgroundColor: 'rgba(56, 217, 169, 0.1)',
+    borderColor: 'rgba(56, 217, 169, 0.35)',
+  },
+  riskColB: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.paper,
+  },
+  riskColSpan: {
+    fontSize: 7,
+    color: Colors.paperDim,
+    marginTop: 2,
+    fontWeight: '600',
+  },
+
+  // 3. Industry
+  industrySection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
+  },
+  foundersList: {
+    gap: 14,
+    marginTop: 14,
+  },
+  founderCard: {
+    backgroundColor: Colors.nightCard,
+    borderWidth: 1,
+    borderColor: Colors.nightCardBorder,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  founderImg: {
+    width: '100%',
+    height: 160,
+  },
+  founderCaption: {
+    padding: 16,
+  },
+  founderQuote: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Colors.paper,
+    marginBottom: 8,
+  },
+  founderName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.paper,
+  },
+  founderCo: {
+    fontSize: 10,
+    color: Colors.mutedForeground,
+  },
+  industryStatCard: {
+    backgroundColor: Colors.nightSoft,
+    borderRadius: 14,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.nightCardBorder,
+  },
+  industryStatNumber: {
+    fontSize: 36,
+    fontWeight: '500',
+    color: Colors.paper,
+    marginBottom: 4,
+  },
+  industryStatDesc: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    textAlign: 'center',
+  },
+
+  // 4. Platform
+  platformSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
+  },
+  dashboardStack: {
+    gap: 12,
+    marginTop: 18,
+  },
+  dashMainCard: {
+    backgroundColor: Colors.nightCard,
+    borderWidth: 1,
+    borderColor: Colors.nightCardBorder,
+    borderRadius: 16,
+    padding: 18,
+  },
+  dashHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 14,
   },
-  dotIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  dashFeedTitle: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
   },
-  breakdownTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.paper,
+  metricWrap: {
+    marginBottom: 14,
   },
-  breakdownValMint: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: Colors.mintBright,
-  },
-  breakdownVal: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: Colors.paper,
-  },
-  breakdownSub: {
+  metricLabel: {
     fontSize: 10,
-    color: Colors.paperDim,
+    color: Colors.mutedForeground,
+    textTransform: 'uppercase',
   },
-  calcDivider: {
-    height: 1,
-    backgroundColor: Colors.nightBorder,
+  metricAmount: {
+    fontSize: 32,
+    fontWeight: '500',
+    color: Colors.paper,
   },
-  calcCta: {
+  barsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 70,
+    gap: 6,
+  },
+  dashBar: {
+    flex: 1,
+    backgroundColor: Colors.mint,
+    borderRadius: 2,
+    opacity: 0.85,
+  },
+  dashSmallCard: {
+    backgroundColor: Colors.nightCard,
+    borderWidth: 1,
+    borderColor: Colors.nightCardBorder,
+    borderRadius: 14,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-  },
-  calcCtaText: {
-    color: Colors.mintBright,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  featuresSection: {
-    marginBottom: 28,
-  },
-  featureCardsCol: {
     gap: 12,
-    marginTop: 14,
   },
-  featureCard: {
-    backgroundColor: Colors.nightElevated,
+  dashSmallLabel: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    flex: 1,
+  },
+  dashSmallAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.paper,
+  },
+  dashToolkitGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: Colors.nightCard,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 16,
-    padding: 16,
+    borderColor: Colors.nightCardBorder,
+    overflow: 'hidden',
   },
-  featureIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: Colors.mintSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
+  toolkitItem: {
+    width: '50%',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  featureTitle: {
-    fontSize: 15,
-    fontWeight: '800',
+  toolkitKey: {
+    fontSize: 9,
+    color: Colors.mutedForeground,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  toolkitVal: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.mintBright,
+  },
+
+  // 5. Ambition
+  ambitionSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
+  },
+  growthCard: {
+    backgroundColor: Colors.nightCard,
+    borderWidth: 1,
+    borderColor: Colors.nightCardBorder,
+    borderRadius: 14,
+    padding: 20,
+    marginVertical: 14,
+  },
+  growthTag: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.mutedForeground,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  growthNumber: {
+    fontSize: 26,
+    fontWeight: '500',
     color: Colors.paper,
     marginBottom: 6,
   },
-  featureDesc: {
+  growthDesc: {
     fontSize: 12,
-    color: Colors.paperMuted,
+    color: Colors.mutedForeground,
     lineHeight: 18,
-    marginBottom: 12,
   },
-  featureMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  featureMetaText: {
-    fontSize: 11,
-    color: Colors.mint,
-    fontWeight: '700',
-  },
-  riskCard: {
-    backgroundColor: Colors.nightElevated,
+
+  // 6. Statement
+  statementBanner: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    backgroundColor: Colors.nightCard,
     borderWidth: 1,
-    borderColor: Colors.nightBorder,
+    borderColor: Colors.nightCardBorder,
     borderRadius: 18,
-    padding: 16,
-    marginBottom: 24,
-  },
-  riskTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.paper,
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  riskBarsWrap: {
-    gap: 14,
-  },
-  riskBarItem: {
-    gap: 4,
-  },
-  riskBarLabel: {
-    fontSize: 11,
-    color: Colors.paperMuted,
-    fontWeight: '600',
-  },
-  riskBarOuter: {
-    height: 8,
-    backgroundColor: Colors.nightSoft,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  riskBarInner: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  riskBarVal: {
-    fontSize: 10,
-    fontWeight: '800',
-    alignSelf: 'flex-end',
-    marginTop: 2,
-  },
-  railsCard: {
-    flexDirection: 'row',
+    padding: 24,
     alignItems: 'center',
-    justifyContent: 'center',
+    textAlign: 'center',
     gap: 8,
-    paddingVertical: 14,
-    backgroundColor: Colors.nightSoft,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
   },
-  railsText: {
-    color: Colors.paperDim,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.6,
+  statementH2Em: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: 'rgba(248, 250, 252, 0.5)',
+    textAlign: 'center',
+  },
+  statementH2White: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: Colors.paper,
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });

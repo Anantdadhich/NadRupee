@@ -12,17 +12,13 @@ import { useAccount } from '../context/AccountContext';
 import { CashoutModal } from '../components/CashoutModal';
 import * as Haptics from 'expo-haptics';
 import {
-  Banknote,
-  Zap,
-  ShieldCheck,
+  Sparkles,
   CheckCircle2,
-  Clock,
-  ArrowRight,
   TrendingUp,
 } from 'lucide-react-native';
 
 export const OfframpScreen: React.FC = () => {
-  const { ausdBalance, fxRate } = useAccount();
+  const { fxRate } = useAccount();
 
   const [inputUsd, setInputUsd] = useState<string>('250');
   const [cashoutVisible, setCashoutVisible] = useState<boolean>(false);
@@ -39,106 +35,104 @@ export const OfframpScreen: React.FC = () => {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={styles.pageContainer}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* 1. HERO */}
-      <View style={styles.hero}>
-        <View style={styles.eyebrow}>
-          <Banknote size={11} color={Colors.mintBright} />
-          <Text style={styles.eyebrowText}>INSTANT INR OFF-RAMP RAIL</Text>
+      {/* 1. PORTAL HERO */}
+      <View style={styles.portalHero}>
+        <View style={styles.darkEyebrow}>
+          <Sparkles size={11} color={Colors.mint} />
+          <Text style={styles.darkEyebrowText}>
+            NADRUPEE · INSTANT INR OFF-RAMP RAIL <Text style={styles.eyebrowSub}>ONMETA</Text>
+          </Text>
         </View>
-        <Text style={styles.heroTitle}>
-          Get Paid in Crypto. <Text style={styles.heroHighlight}>Settle in INR Instantly.</Text>
-        </Text>
-        <Text style={styles.heroSubtitle}>
-          Turn your Monad escrow earnings and AUSD milestone payments directly into Indian Rupees.
-          Instant IMPS bank deposits, zero wire delays, flat 0.5% fee, and automated tax compliance.
+
+        <Text style={styles.portalH1Em}>Get Paid in Crypto.</Text>
+        <Text style={styles.portalH1White}>Settle in INR Instantly.</Text>
+
+        <Text style={styles.portalDesc}>
+          Turn your Monad escrow earnings and AUSD milestone payments directly into Indian Rupees. Instant IMPS bank deposits, zero wire delays, flat 0.5% fee, and automated tax compliance.
         </Text>
       </View>
 
       {/* 2. LIVE CURRENCY CONVERTER CARD */}
-      <View style={styles.converterCard}>
-        <View style={styles.converterHeader}>
-          <View style={styles.oracleBadge}>
-            <TrendingUp size={12} color={Colors.mint} />
-            <Text style={styles.oracleText}>LIVE FX ORACLE</Text>
+      <View style={styles.portalCard}>
+        <View style={styles.portalCardHeader}>
+          <Text style={styles.portalLabel}>INSTANT INR CASHOUT CALCULATOR</Text>
+          <View style={styles.ratePill}>
+            <TrendingUp size={11} color={Colors.mint} />
+            <Text style={styles.ratePillText}>1 USD = ₹{fxRate.toFixed(2)}</Text>
           </View>
-          <Text style={styles.oracleRate}>1 AUSD = ₹{fxRate.toFixed(2)}</Text>
         </View>
 
-        {/* You Sell Input */}
+        {/* Input */}
         <View style={styles.inputGroup}>
-          <Text style={styles.fieldLabel}>YOU SELL</Text>
-          <View style={styles.inputRow}>
+          <Text style={styles.fieldLabel}>YOU SELL (AUSD)</Text>
+          <View style={styles.amountWrap}>
             <TextInput
-              style={styles.textInput}
+              style={styles.amountInput}
               value={inputUsd}
               onChangeText={setInputUsd}
               keyboardType="numeric"
               placeholder="0.00"
-              placeholderTextColor={Colors.paperDim}
+              placeholderTextColor="rgba(248, 250, 252, 0.3)"
             />
-            <View style={styles.tokenPill}>
-              <Text style={styles.tokenPillText}>AUSD</Text>
-            </View>
+            <Text style={styles.amountSuffix}>AUSD</Text>
           </View>
         </View>
 
-        {/* You Receive Calculation */}
+        {/* Output */}
         <View style={styles.inputGroup}>
           <Text style={styles.fieldLabel}>YOU RECEIVE (ESTIMATED IN BANK)</Text>
-          <View style={[styles.inputRow, styles.outputRow]}>
-            <Text style={styles.outputInr}>
+          <View style={styles.outputWrap}>
+            <Text style={styles.outputNumber}>
               ₹{finalInr.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
             </Text>
-            <View style={[styles.tokenPill, styles.tokenPillInr]}>
-              <Text style={[styles.tokenPillText, { color: Colors.mintBright }]}>INR</Text>
-            </View>
+            <Text style={[styles.amountSuffix, { color: Colors.mintBright }]}>INR</Text>
           </View>
         </View>
 
-        {/* Specs breakdown */}
+        {/* Specs */}
         <View style={styles.specsRow}>
-          <View style={styles.specItem}>
-            <Text style={styles.specLabel}>PLATFORM FEE</Text>
+          <View>
+            <Text style={styles.specSub}>PLATFORM FEE</Text>
             <Text style={styles.specVal}>0.5% (Flat)</Text>
           </View>
-          <View style={styles.specItem}>
-            <Text style={styles.specLabel}>GAS NETWORK</Text>
+          <View>
+            <Text style={styles.specSub}>GAS NETWORK</Text>
             <Text style={[styles.specVal, { color: Colors.mintBright }]}>₹0 Free</Text>
           </View>
-          <View style={styles.specItem}>
-            <Text style={styles.specLabel}>SPEED</Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={styles.specSub}>SPEED</Text>
             <Text style={styles.specVal}>&lt;60s IMPS</Text>
           </View>
         </View>
 
         <TouchableOpacity
-          style={styles.settleBtn}
+          style={styles.actionBtn}
           onPress={handleLaunchModal}
           activeOpacity={0.8}
         >
-          <Zap size={16} color="#000" />
-          <Text style={styles.settleBtnText}>Launch Instant Cashout Modal</Text>
+          <Text style={styles.actionBtnText}>Launch Instant Cashout Modal</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 3. COMPLIANCE & TRUST HIGHLIGHTS */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Compliant & Regulated Infrastructure</Text>
-        <Text style={styles.sectionSubtitle}>
-          Zero P2P fraud risk. Official banking channels through licensed payment gateways.
-        </Text>
+      {/* 3. COMPLIANCE & TRUST */}
+      <View style={[styles.portalCard, { marginTop: 24 }]}>
+        <View style={styles.portalCardHeader}>
+          <Text style={styles.sectionH2Em}>
+            Compliant & Regulated <Text style={styles.sectionH2White}>Infrastructure</Text>
+          </Text>
+        </View>
 
         <View style={styles.featuresList}>
           <View style={styles.featureItem}>
             <CheckCircle2 size={16} color={Colors.mint} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.featureItemTitle}>Instant IMPS & UPI Bank Transfers</Text>
-              <Text style={styles.featureItemDesc}>
-                Direct payout to all Indian banks (HDFC, ICICI, SBI, Axis) and UPI handles.
+              <Text style={styles.featureTitle}>Instant IMPS & UPI Bank Transfers</Text>
+              <Text style={styles.featureDesc}>
+                Direct payout to all Indian banks (HDFC, ICICI, SBI, Axis) and UPI VPAs.
               </Text>
             </View>
           </View>
@@ -146,9 +140,9 @@ export const OfframpScreen: React.FC = () => {
           <View style={styles.featureItem}>
             <CheckCircle2 size={16} color={Colors.mint} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.featureItemTitle}>100% RBI & FIU-IND Compliant</Text>
-              <Text style={styles.featureItemDesc}>
-                Compliant with Indian virtual digital asset guidelines with automated 1% TDS certificates.
+              <Text style={styles.featureTitle}>100% RBI & FIU-IND Compliant</Text>
+              <Text style={styles.featureDesc}>
+                Compliant with Indian virtual digital asset guidelines with automated 1% TDS compliance.
               </Text>
             </View>
           </View>
@@ -156,9 +150,9 @@ export const OfframpScreen: React.FC = () => {
           <View style={styles.featureItem}>
             <CheckCircle2 size={16} color={Colors.mint} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.featureItemTitle}>Verified IMPS UTR Reference</Text>
-              <Text style={styles.featureItemDesc}>
-                Every payout includes an official 12-digit UTR reference code queryable in your netbanking app.
+              <Text style={styles.featureTitle}>Verified IMPS UTR Reference</Text>
+              <Text style={styles.featureDesc}>
+                Every payout includes an official 12-digit UTR reference code queryable in your netbanking statement.
               </Text>
             </View>
           </View>
@@ -176,206 +170,202 @@ export const OfframpScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  pageContainer: {
     flex: 1,
     backgroundColor: Colors.night,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 60,
   },
-  hero: {
-    marginBottom: 20,
+  portalHero: {
+    marginBottom: 24,
   },
-  eyebrow: {
+  darkEyebrow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(56, 217, 169, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(56, 217, 169, 0.3)',
+    borderColor: 'rgba(56, 217, 169, 0.25)',
     alignSelf: 'flex-start',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 14,
+    marginBottom: 14,
+  },
+  darkEyebrowText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(248, 250, 252, 0.75)',
+    letterSpacing: 0.5,
+  },
+  eyebrowSub: {
+    color: Colors.mutedForeground,
+    marginLeft: 4,
+  },
+  portalH1Em: {
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '500',
+    color: 'rgba(248, 250, 252, 0.5)',
+  },
+  portalH1White: {
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '500',
+    color: Colors.paper,
     marginBottom: 10,
   },
-  eyebrowText: {
-    color: Colors.mintBright,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-  },
-  heroTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: Colors.paper,
-    lineHeight: 34,
-    letterSpacing: -0.6,
-    marginBottom: 8,
-  },
-  heroHighlight: {
-    color: Colors.mint,
-  },
-  heroSubtitle: {
+  portalDesc: {
     fontSize: 13,
-    color: Colors.paperMuted,
-    lineHeight: 20,
+    color: 'rgba(248, 250, 252, 0.65)',
+    lineHeight: 18,
   },
-  converterCard: {
-    backgroundColor: Colors.nightElevated,
+  portalCard: {
+    backgroundColor: Colors.nightCard,
     borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 24,
+    borderColor: Colors.nightCardBorder,
+    borderRadius: 16,
+    padding: 20,
   },
-  converterHeader: {
+  portalCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    paddingBottom: 14,
     marginBottom: 16,
   },
-  oracleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  oracleText: {
+  portalLabel: {
     fontSize: 10,
-    fontWeight: '800',
-    color: Colors.mint,
+    fontWeight: '700',
+    color: Colors.mutedForeground,
     letterSpacing: 0.5,
   },
-  oracleRate: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.paper,
+  ratePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(56, 217, 169, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  ratePillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.mintBright,
   },
   inputGroup: {
     marginBottom: 14,
   },
   fieldLabel: {
     fontSize: 10,
-    fontWeight: '800',
-    color: Colors.paperDim,
+    fontWeight: '700',
+    color: Colors.mutedForeground,
     letterSpacing: 0.5,
     marginBottom: 6,
   },
-  inputRow: {
+  amountWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.nightSurface,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: Colors.nightBorder,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 12,
     paddingHorizontal: 14,
   },
-  textInput: {
+  amountInput: {
     flex: 1,
-    height: 48,
+    height: 44,
     color: Colors.paper,
-    fontSize: 18,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  amountSuffix: {
+    color: Colors.mint,
+    fontSize: 12,
     fontWeight: '700',
   },
-  tokenPill: {
-    backgroundColor: Colors.nightSoft,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  tokenPillText: {
-    color: Colors.paper,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  outputRow: {
-    height: 48,
+  outputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 44,
   },
-  outputInr: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.mintBright,
-  },
-  tokenPillInr: {
-    borderColor: Colors.mintBorder,
-    backgroundColor: Colors.mintSoft,
+  outputNumber: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.paper,
   },
   specsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: Colors.nightSoft,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 10,
     padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 18,
   },
-  specItem: {
-    gap: 2,
-  },
-  specLabel: {
+  specSub: {
     fontSize: 9,
     fontWeight: '700',
-    color: Colors.paperDim,
+    color: Colors.mutedForeground,
+    letterSpacing: 0.5,
   },
   specVal: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     color: Colors.paper,
+    marginTop: 2,
   },
-  settleBtn: {
-    height: 50,
-    backgroundColor: Colors.mint,
-    borderRadius: 14,
-    flexDirection: 'row',
+  actionBtn: {
+    height: 38,
+    borderRadius: 22,
+    backgroundColor: Colors.paper,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    paddingHorizontal: 20,
   },
-  settleBtnText: {
-    color: '#000',
-    fontSize: 14,
-    fontWeight: '800',
+  actionBtnText: {
+    color: Colors.night,
+    fontSize: 12,
+    fontWeight: '700',
   },
-  section: {
-    marginBottom: 24,
+  sectionH2Em: {
+    fontSize: 17,
+    fontWeight: '500',
+    color: 'rgba(248, 250, 252, 0.5)',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+  sectionH2White: {
+    fontSize: 17,
+    fontWeight: '500',
     color: Colors.paper,
   },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: Colors.paperDim,
-    marginTop: 2,
-    marginBottom: 14,
-  },
   featuresList: {
-    gap: 12,
+    gap: 14,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: Colors.nightElevated,
-    borderWidth: 1,
-    borderColor: Colors.nightBorder,
-    borderRadius: 14,
-    padding: 14,
+    paddingVertical: 4,
   },
-  featureItemTitle: {
+  featureTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     color: Colors.paper,
-    marginBottom: 3,
+    marginBottom: 2,
   },
-  featureItemDesc: {
+  featureDesc: {
     fontSize: 11,
-    color: Colors.paperMuted,
+    color: Colors.mutedForeground,
     lineHeight: 16,
   },
 });
