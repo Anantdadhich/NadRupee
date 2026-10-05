@@ -18,10 +18,15 @@ import {
   RefreshCw,
   Send,
   ExternalLink,
-  Loader2,
+  ArrowRight,
 } from 'lucide-react-native';
+import { TabType } from '../components/BottomNav';
 
-export const FreelancerScreen: React.FC = () => {
+interface Props {
+  onNavigateTab?: (tab: TabType) => void;
+}
+
+export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
   const {
     address,
     isConnected,
@@ -30,16 +35,28 @@ export const FreelancerScreen: React.FC = () => {
     jobs,
     ledger,
     claimAdvance,
-    connectTestnetPasskey,
+    refreshAccountData,
   } = useAccount();
 
   const [cashoutVisible, setCashoutVisible] = useState<boolean>(false);
   const [claimingJobId, setClaimingJobId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [claimSuccessMsg, setClaimSuccessMsg] = useState<string | null>(null);
 
   const inrBalance = (ausdBalance * fxRate).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await refreshAccountData();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleClaim = async (jobId: string) => {
     setClaimingJobId(jobId);
@@ -67,11 +84,26 @@ export const FreelancerScreen: React.FC = () => {
     >
       {/* 1. PORTAL HERO (Matching web .portal-hero) */}
       <View style={styles.portalHero}>
-        <View style={styles.darkEyebrow}>
-          <Sparkles size={11} color={Colors.mint} />
-          <Text style={styles.darkEyebrowText}>
-            NADRUPEE · FREELANCER DASHBOARD <Text style={styles.eyebrowSub}>MONAD TESTNET</Text>
-          </Text>
+        <View style={styles.heroTopRow}>
+          <View style={styles.darkEyebrow}>
+            <Sparkles size={11} color={Colors.mint} />
+            <Text style={styles.darkEyebrowText}>
+              NADRUPEE · FREELANCER DASHBOARD <Text style={styles.eyebrowSub}>MONAD TESTNET</Text>
+            </Text>
+          </View>
+
+          {onNavigateTab && (
+            <TouchableOpacity
+              style={styles.switchBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onNavigateTab('client');
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.switchBtnText}>Switch to Client</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <Text style={styles.portalH1Em}>Your earnings,</Text>
@@ -121,6 +153,7 @@ export const FreelancerScreen: React.FC = () => {
                 onPress={() => setCashoutVisible(true)}
                 activeOpacity={0.8}
               >
+                <Send size={12} color={Colors.paper} />
                 <Text style={styles.actionBtnDarkText}>Send AUSD</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -138,10 +171,15 @@ export const FreelancerScreen: React.FC = () => {
         <View style={styles.portalCard}>
           <View style={styles.portalCardHeader}>
             <Text style={styles.portalLabel}>USD / INR EXCHANGE RATE</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <TouchableOpacity
+              onPress={handleRefresh}
+              disabled={isRefreshing}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              activeOpacity={0.7}
+            >
               <RefreshCw size={11} color={Colors.mutedForeground} />
-              <Text style={styles.refreshText}>Refresh</Text>
-            </View>
+              <Text style={styles.refreshText}>{isRefreshing ? 'Updating...' : 'Refresh'}</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.metricBlock}>
@@ -194,9 +232,9 @@ export const FreelancerScreen: React.FC = () => {
       </View>
 
       {/* 3. CONTRACT ESCROWS (Matching web active jobs card) */}
-      <View style={[styles.portalCard, { marginTop: 24 }]}>
+      <View style={[styles.portalCard, { marginTop: 20 }]}>
         <View style={styles.portalCardHeader}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.sectionH2Em}>
               Contract Escrows <Text style={styles.sectionH2White}>({jobs.length})</Text>
             </Text>
@@ -204,83 +242,110 @@ export const FreelancerScreen: React.FC = () => {
               Jobs where your address is the designated freelancer. Funds are locked by the client before you begin work.
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={handleRefresh}
+            disabled={isRefreshing}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 8 }}
+            activeOpacity={0.7}
+          >
+            <RefreshCw size={11} color={Colors.mutedForeground} />
+            <Text style={styles.refreshText}>{isRefreshing ? '...' : 'Refresh'}</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.jobsList}>
           {jobs.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No active on-chain escrow contracts found for this address.</Text>
+              <Text style={styles.emptyTitle}>
+                No active job escrows found for your address yet.
+              </Text>
+              <Text style={styles.emptyText}>
+                When a client creates and funds a job in the Client Portal, it will appear here immediately.
+              </Text>
+              {onNavigateTab && (
+                <TouchableOpacity
+                  style={styles.emptyActionBtn}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    onNavigateTab('client');
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.emptyActionBtnText}>Switch to Client Portal</Text>
+                  <ArrowRight size={12} color={Colors.night} />
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             jobs.map((job) => {
               const totalInr = (job.amountUsd * fxRate).toLocaleString('en-IN');
-            const advanceInr = (job.partialAmountUsd * fxRate).toLocaleString('en-IN');
-            const isFunded = job.state === JobState.Funded;
-            const isPartial = job.state === JobState.PartiallyReleased;
-            const isCompleted = job.state === JobState.Completed;
-            const isClaiming = claimingJobId === job.id;
+              const advanceInr = (job.partialAmountUsd * fxRate).toLocaleString('en-IN');
+              const isFunded = job.state === JobState.Funded;
+              const isPartial = job.state === JobState.PartiallyReleased;
+              const isCompleted = job.state === JobState.Completed;
+              const isClaiming = claimingJobId === job.id;
 
-            return (
-              <View key={job.id} style={styles.jobItemCard}>
-                <View style={styles.jobItemTop}>
-                  <Text style={styles.jobItemTitle}>{job.title}</Text>
-                  <View
-                    style={[
-                      styles.stateBadge,
-                      isCompleted || isPartial ? styles.badgeMint : styles.badgeMuted,
-                    ]}
-                  >
-                    <Text
-                      style={
-                        isCompleted || isPartial ? styles.badgeMintText : styles.badgeMutedText
-                      }
+              return (
+                <View key={job.id} style={styles.jobItemCard}>
+                  <View style={styles.jobItemTop}>
+                    <Text style={styles.jobItemTitle}>{job.title}</Text>
+                    <View
+                      style={[
+                        styles.stateBadge,
+                        isCompleted || isPartial ? styles.badgeMint : styles.badgeMuted,
+                      ]}
                     >
-                      {JOB_STATE_LABELS[job.state]}
+                      <Text
+                        style={
+                          isCompleted || isPartial ? styles.badgeMintText : styles.badgeMutedText
+                        }
+                      >
+                        {JOB_STATE_LABELS[job.state]}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.jobItemMeta}>
+                    <Text style={styles.jobItemMetaText}>
+                      Client: <Text style={{ color: Colors.paper }}>{job.client.slice(0, 6)}...{job.client.slice(-4)}</Text>
+                    </Text>
+                    <Text style={styles.jobItemMetaText}>
+                      Total: <Text style={{ color: Colors.paper, fontWeight: '700' }}>₹{totalInr} ({job.amountUsd} AUSD)</Text>
+                    </Text>
+                    <Text style={styles.jobItemMetaText}>
+                      80% Advance: ₹{advanceInr}
                     </Text>
                   </View>
-                </View>
 
-                <View style={styles.jobItemMeta}>
-                  <Text style={styles.jobItemMetaText}>
-                    Client: <Text style={{ color: Colors.paper }}>{job.client.slice(0, 6)}...{job.client.slice(-4)}</Text>
-                  </Text>
-                  <Text style={styles.jobItemMetaText}>
-                    Total: <Text style={{ color: Colors.paper, fontWeight: '700' }}>₹{totalInr} ({job.amountUsd} AUSD)</Text>
-                  </Text>
-                  <Text style={styles.jobItemMetaText}>
-                    80% Advance: ₹{advanceInr}
-                  </Text>
-                </View>
+                  {/* Actions */}
+                  <View style={styles.jobActionsRow}>
+                    {isFunded && (
+                      <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => handleClaim(job.id)}
+                        disabled={isClaiming}
+                        activeOpacity={0.8}
+                      >
+                        {isClaiming ? (
+                          <ActivityIndicator color={Colors.night} />
+                        ) : (
+                          <Text style={styles.actionBtnText}>Claim 80% Instant Payout</Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
 
-                {/* Actions */}
-                <View style={styles.jobActionsRow}>
-                  {isFunded && (
-                    <TouchableOpacity
-                      style={styles.actionBtn}
-                      onPress={() => handleClaim(job.id)}
-                      disabled={isClaiming}
-                      activeOpacity={0.8}
-                    >
-                      {isClaiming ? (
-                        <ActivityIndicator color={Colors.night} />
-                      ) : (
-                        <Text style={styles.actionBtnText}>Claim 80% Instant Payout</Text>
-                      )}
-                    </TouchableOpacity>
-                  )}
+                    {isPartial && (
+                      <View style={styles.claimedRow}>
+                        <Check size={13} color={Colors.mintBright} />
+                        <Text style={styles.claimedText}>80% Advance Deposited</Text>
+                      </View>
+                    )}
 
-                  {isPartial && (
-                    <View style={styles.claimedRow}>
-                      <Check size={13} color={Colors.mintBright} />
-                      <Text style={styles.claimedText}>80% Advance Deposited</Text>
-                    </View>
-                  )}
-
-                  {isCompleted && (
-                    <View style={styles.claimedRow}>
-                      <Check size={13} color={Colors.mintBright} />
-                      <Text style={styles.claimedText}>100% Payout Finalized</Text>
-                    </View>
+                    {isCompleted && (
+                      <View style={styles.claimedRow}>
+                        <Check size={13} color={Colors.mintBright} />
+                        <Text style={styles.claimedText}>100% Payout Finalized</Text>
+                      </View>
                     )}
                   </View>
                 </View>
@@ -291,7 +356,7 @@ export const FreelancerScreen: React.FC = () => {
       </View>
 
       {/* 4. TRANSACTION LEDGER */}
-      <View style={[styles.portalCard, { marginTop: 24 }]}>
+      <View style={[styles.portalCard, { marginTop: 20 }]}>
         <View style={styles.portalCardHeader}>
           <Text style={styles.sectionH2Em}>
             Ledger & Activity <Text style={styles.sectionH2White}>({ledger.length})</Text>
@@ -352,12 +417,18 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.night,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 60,
   },
   portalHero: {
-    marginBottom: 24,
+    marginBottom: 20,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   darkEyebrow: {
     flexDirection: 'row',
@@ -368,37 +439,57 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(56, 217, 169, 0.25)',
-    alignSelf: 'flex-start',
-    marginBottom: 14,
+    backgroundColor: 'rgba(56, 217, 169, 0.08)',
   },
   darkEyebrowText: {
     fontSize: 10,
     fontWeight: '700',
     color: 'rgba(248, 250, 252, 0.75)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     letterSpacing: 0.5,
   },
   eyebrowSub: {
     color: Colors.mutedForeground,
     marginLeft: 4,
   },
+  switchBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  switchBtnText: {
+    color: Colors.paper,
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
   portalH1Em: {
-    fontSize: 30,
-    lineHeight: 34,
-    fontWeight: '500',
-    color: 'rgba(248, 250, 252, 0.5)',
+    fontSize: 32,
+    lineHeight: 36,
+    fontWeight: '400',
+    fontStyle: 'normal',
+    color: 'rgba(248, 250, 252, 0.50)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    letterSpacing: -0.6,
   },
   portalH1White: {
-    fontSize: 30,
-    lineHeight: 34,
+    fontSize: 32,
+    lineHeight: 36,
     fontWeight: '500',
     color: Colors.paper,
-    marginBottom: 10,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    letterSpacing: -0.6,
+    marginBottom: 8,
   },
   portalDesc: {
     fontSize: 13,
     color: 'rgba(248, 250, 252, 0.65)',
     lineHeight: 18,
-    maxWidth: 340,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    maxWidth: 380,
   },
   alertSuccess: {
     flexDirection: 'row',
@@ -409,12 +500,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(56, 217, 169, 0.3)',
     padding: 12,
     borderRadius: 12,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   alertSuccessText: {
     color: Colors.paper,
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     flex: 1,
   },
   cardsStack: {
@@ -426,6 +518,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.nightCardBorder,
     borderRadius: 16,
     padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 6,
   },
   portalCardHeader: {
     flexDirection: 'row',
@@ -440,7 +537,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: Colors.mutedForeground,
-    letterSpacing: 0.5,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   badgeMint: {
     flexDirection: 'row',
@@ -457,6 +556,7 @@ const styles = StyleSheet.create({
     color: Colors.mintBright,
     fontSize: 10,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   badgeMuted: {
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
@@ -470,10 +570,12 @@ const styles = StyleSheet.create({
     color: 'rgba(248, 250, 252, 0.7)',
     fontSize: 10,
     fontWeight: '500',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   refreshText: {
     fontSize: 11,
     color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   metricBlock: {
     marginBottom: 16,
@@ -481,12 +583,15 @@ const styles = StyleSheet.create({
   metricSubhead: {
     fontSize: 11,
     color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     marginBottom: 4,
   },
   metricBigNumber: {
-    fontSize: 34,
+    fontSize: 38,
     fontWeight: '500',
     color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    letterSpacing: -0.8,
   },
   cardFooterRow: {
     flexDirection: 'row',
@@ -495,27 +600,33 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.08)',
     paddingTop: 14,
+    flexWrap: 'wrap',
+    gap: 10,
   },
   footerSubhead: {
     fontSize: 9,
     color: Colors.mutedForeground,
     fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     letterSpacing: 0.5,
   },
   footerBalanceMint: {
     fontSize: 14,
     fontWeight: '600',
     color: Colors.mintBright,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     marginTop: 2,
   },
   footerActions: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
+    flexWrap: 'wrap',
   },
   actionBtn: {
-    height: 34,
-    paddingHorizontal: 16,
-    borderRadius: 22,
+    height: 40,
+    paddingHorizontal: 18,
+    borderRadius: 999,
     backgroundColor: Colors.paper,
     alignItems: 'center',
     justifyContent: 'center',
@@ -524,19 +635,25 @@ const styles = StyleSheet.create({
     color: Colors.night,
     fontSize: 12,
     fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   actionBtnDark: {
-    height: 34,
-    paddingHorizontal: 12,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
   },
   actionBtnDarkText: {
     color: Colors.paper,
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   cardNoteRow: {
     borderTopWidth: 1,
@@ -546,6 +663,8 @@ const styles = StyleSheet.create({
   cardNoteText: {
     fontSize: 10,
     color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    lineHeight: 14,
   },
   securityStack: {
     gap: 10,
@@ -554,12 +673,14 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: Colors.mutedForeground,
     fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     letterSpacing: 0.5,
   },
   securityVal: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     marginTop: 2,
   },
   contractRow: {
@@ -574,6 +695,7 @@ const styles = StyleSheet.create({
   contractLabel: {
     fontSize: 11,
     color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   contractCode: {
     fontSize: 11,
@@ -584,18 +706,23 @@ const styles = StyleSheet.create({
   // Jobs
   sectionH2Em: {
     fontSize: 17,
-    fontWeight: '500',
+    fontWeight: '400',
+    fontStyle: 'normal',
     color: 'rgba(248, 250, 252, 0.5)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   sectionH2White: {
     fontSize: 17,
     fontWeight: '500',
     color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   sectionSubDesc: {
     fontSize: 11,
     color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     marginTop: 4,
+    lineHeight: 15,
   },
   jobsList: {
     gap: 12,
@@ -617,6 +744,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     flex: 1,
     marginRight: 8,
   },
@@ -631,6 +759,7 @@ const styles = StyleSheet.create({
   jobItemMetaText: {
     fontSize: 11,
     color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   jobActionsRow: {
     paddingTop: 4,
@@ -644,17 +773,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.mintBright,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
 
   // Ledger
   ledgerList: {
-    gap: 12,
+    gap: 10,
   },
   ledgerItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.04)',
   },
@@ -662,15 +792,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   ledgerMeta: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 2,
+    marginTop: 3,
   },
   ledgerTime: {
     fontSize: 10,
     color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   ledgerUtr: {
     fontSize: 10,
@@ -680,6 +812,7 @@ const styles = StyleSheet.create({
   ledgerAmount: {
     fontSize: 13,
     fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   amountCredit: {
     color: Colors.mintBright,
@@ -690,22 +823,50 @@ const styles = StyleSheet.create({
   ledgerUsd: {
     fontSize: 10,
     color: Colors.paperDim,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     marginTop: 1,
   },
   emptyContainer: {
-    paddingVertical: 24,
+    paddingVertical: 28,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  emptyText: {
+  emptyTitle: {
     fontSize: 13,
-    color: Colors.mutedForeground,
+    fontWeight: '600',
+    color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     textAlign: 'center',
-    lineHeight: 18,
+    marginBottom: 4,
+  },
+  emptyText: {
+    fontSize: 12,
+    color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    textAlign: 'center',
+    lineHeight: 17,
+    maxWidth: 320,
+  },
+  emptyActionBtn: {
+    marginTop: 14,
+    paddingHorizontal: 18,
+    height: 38,
+    borderRadius: 999,
+    backgroundColor: Colors.paper,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  emptyActionBtnText: {
+    color: Colors.night,
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
 });

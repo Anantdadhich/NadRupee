@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandMark } from './BrandMark';
 import { Colors } from '../theme/colors';
@@ -7,7 +7,7 @@ import { useAccount } from '../context/AccountContext';
 import { isLocalOrTestEnvironment } from '../constants/config';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { Check, Copy } from 'lucide-react-native';
+import { Check, Copy, Menu, X, ArrowRight, ShieldCheck } from 'lucide-react-native';
 import { TabType } from './BottomNav';
 
 interface Props {
@@ -26,6 +26,7 @@ export const Header: React.FC<Props> = ({ activeTab, onTabChange }) => {
     signOut,
   } = useAccount();
 
+  const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -37,21 +38,28 @@ export const Header: React.FC<Props> = ({ activeTab, onTabChange }) => {
     }
   };
 
-  const navTabs: { key: TabType; label: string }[] = [
+  const navLinks: { key: TabType; label: string }[] = [
     { key: 'home', label: 'Overview' },
-    { key: 'freelancer', label: 'Freelancer' },
-    { key: 'client', label: 'Client' },
-    { key: 'offramp', label: 'Offramp' },
+    { key: 'freelancer', label: 'Freelancer Portal' },
+    { key: 'client', label: 'Client Portal' },
+    { key: 'offramp', label: 'Instant INR Payout' },
     { key: 'protocol', label: 'Protocol Lab' },
   ];
 
+  const handleSelectTab = (tab: TabType) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onTabChange(tab);
+    setMenuOpen(false);
+  };
+
   return (
     <View style={[styles.headerContainer, { paddingTop: Math.max(insets.top, 12) + 4 }]}>
-      {/* 1. FLOATING NAV SHELL (Matching web .nav-shell) */}
+      {/* 1. FLOATING NAV SHELL (Exact 1:1 replica of web .nav-shell at mobile size) */}
       <View style={styles.navShell}>
         <TouchableOpacity
           onPress={() => onTabChange('home')}
           activeOpacity={0.8}
+          style={styles.brandWrapper}
         >
           <BrandMark />
         </TouchableOpacity>
@@ -74,66 +82,101 @@ export const Header: React.FC<Props> = ({ activeTab, onTabChange }) => {
                   <Copy size={11} color={Colors.paperDim} />
                 )}
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={signOut}
-                style={styles.signOutBtn}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.signOutText}>Sign out</Text>
-              </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.authRow}>
-              {isLocalOrTestEnvironment() && (
-                <TouchableOpacity
-                  onPress={connectTestnetPasskey}
-                  disabled={isConnecting}
-                  style={styles.testnetBtn}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.testnetBtnText}>Testnet Passkey</Text>
-                </TouchableOpacity>
-              )}
+            isLocalOrTestEnvironment() && (
               <TouchableOpacity
-                onPress={connectBiometricPasskey}
+                onPress={connectTestnetPasskey}
                 disabled={isConnecting}
-                style={styles.signinBtn}
+                style={styles.testnetBtn}
                 activeOpacity={0.7}
               >
-                <Text style={styles.signinBtnText}>
-                  {isConnecting ? '...' : 'Biometric'}
-                </Text>
+                <Text style={styles.testnetBtnText}>⚡ Testnet Passkey</Text>
               </TouchableOpacity>
-            </View>
+            )
           )}
+
+          {/* Round 40x40 Hamburger Menu Button (Matching web .menu-button) */}
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setMenuOpen(!menuOpen);
+            }}
+            style={styles.menuButton}
+            activeOpacity={0.8}
+            accessibilityLabel="Toggle navigation"
+          >
+            {menuOpen ? (
+              <X size={19} color={Colors.paper} />
+            ) : (
+              <Menu size={19} color={Colors.paper} />
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* 2. SUB-NAV PORTAL PILL SWITCHER */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.tabsRow}
-      >
-        {navTabs.map((t) => {
-          const isActive = activeTab === t.key;
-          return (
-            <TouchableOpacity
-              key={t.key}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onTabChange(t.key);
-              }}
-              style={[styles.tabPill, isActive && styles.tabPillActive]}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.tabPillText, isActive && styles.tabPillTextActive]}>
-                {t.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      {/* 2. FLOATING MOBILE MENU DROPDOWN (Exact 1:1 replica of web .mobile-menu) */}
+      {menuOpen && (
+        <View style={styles.mobileMenu}>
+          {navLinks.map((link, idx) => {
+            const isActive = activeTab === link.key;
+            const isLast = idx === navLinks.length - 1;
+            return (
+              <TouchableOpacity
+                key={link.key}
+                onPress={() => handleSelectTab(link.key)}
+                style={[
+                  styles.menuItem,
+                  !isLast && styles.menuItemBorder,
+                  isActive && styles.menuItemActive,
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.menuItemText,
+                    isActive && styles.menuItemTextActive,
+                    isLast && styles.menuItemTextLast,
+                  ]}
+                >
+                  {link.label}
+                </Text>
+                {isActive && (
+                  <View style={styles.activeDot} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+
+          {/* Additional Auth Action inside Menu */}
+          <View style={styles.menuFooter}>
+            {isConnected ? (
+              <TouchableOpacity
+                onPress={() => {
+                  signOut();
+                  setMenuOpen(false);
+                }}
+                style={styles.signOutMenuItem}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.signOutMenuText}>Sign out of Passkey</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() => {
+                  connectBiometricPasskey();
+                  setMenuOpen(false);
+                }}
+                style={styles.biometricMenuItem}
+                activeOpacity={0.7}
+              >
+                <ShieldCheck size={14} color={Colors.night} />
+                <Text style={styles.biometricMenuText}>Sign in with Biometric Passkey</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -142,30 +185,40 @@ const styles = StyleSheet.create({
   headerContainer: {
     backgroundColor: Colors.night,
     paddingHorizontal: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    paddingBottom: 10,
+    zIndex: 100,
+    position: 'relative',
   },
   navShell: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 32,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    minHeight: 46,
+    paddingHorizontal: 16,
+    minHeight: 52,
+  },
+  brandWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   navActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   authStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   authDot: {
     width: 6,
@@ -176,75 +229,121 @@ const styles = StyleSheet.create({
   addressPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
   },
   addressText: {
-    color: Colors.paper,
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'monospace',
-    fontWeight: '500',
-  },
-  signOutBtn: {
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-  },
-  signOutText: {
-    color: Colors.paperDim,
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  authRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    color: Colors.paper,
+    fontWeight: '600',
   },
   testnetBtn: {
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 18,
-    backgroundColor: 'rgba(56, 217, 169, 0.12)',
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(56, 217, 169, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(56, 217, 169, 0.3)',
+    borderColor: Colors.mint,
   },
   testnetBtnText: {
     color: Colors.mint,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
-  signinBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  menuButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  signinBtnText: {
-    color: Colors.paper,
-    fontSize: 11,
-    fontWeight: '600',
+  // Floating Mobile Menu Overlay (Matching web .mobile-menu)
+  mobileMenu: {
+    position: 'absolute',
+    top: 74,
+    left: 16,
+    right: 16,
+    zIndex: 999,
+    backgroundColor: 'rgba(22, 34, 36, 0.98)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
+    borderRadius: 16,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 20,
   },
-  tabsRow: {
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingTop: 10,
-    paddingBottom: 2,
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  tabPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
+  menuItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
   },
-  tabPillActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  menuItemActive: {
+    backgroundColor: 'rgba(56, 217, 169, 0.08)',
+    borderRadius: 10,
   },
-  tabPillText: {
-    color: Colors.paperDim,
-    fontSize: 12,
+  menuItemText: {
+    fontSize: 14,
     fontWeight: '500',
+    color: 'rgba(248, 250, 252, 0.85)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
-  tabPillTextActive: {
+  menuItemTextActive: {
     color: Colors.paper,
+    fontWeight: '700',
+  },
+  menuItemTextLast: {
+    color: Colors.mintBright,
+    fontWeight: '700',
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.mint,
+  },
+  menuFooter: {
+    marginTop: 6,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  signOutMenuItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  signOutMenuText: {
+    color: 'rgba(248, 250, 252, 0.5)',
+    fontSize: 12,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  biometricMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.paper,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginHorizontal: 10,
+    marginVertical: 4,
+  },
+  biometricMenuText: {
+    color: Colors.night,
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
 });

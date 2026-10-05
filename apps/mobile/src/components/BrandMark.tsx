@@ -39,19 +39,20 @@ const styles = StyleSheet.create({
   square: {
     width: 6,
     height: 9,
-    backgroundColor: Colors.paper,
+    backgroundColor: Colors.mint,
     borderRadius: 1,
   },
   tallBar: {
     width: 6,
     height: 20,
-    backgroundColor: Colors.paper,
+    backgroundColor: Colors.mint,
     borderRadius: 1,
   },
   brandName: {
     color: Colors.paper,
     fontSize: 16,
     fontWeight: '700',
-    letterSpacing: -0.3,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    letterSpacing: -0.4,
   },
 });

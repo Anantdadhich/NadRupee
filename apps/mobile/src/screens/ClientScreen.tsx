@@ -17,9 +17,15 @@ import {
   Check,
   RefreshCw,
   ExternalLink,
+  ArrowRight,
 } from 'lucide-react-native';
+import { TabType } from '../components/BottomNav';
 
-export const ClientScreen: React.FC = () => {
+interface Props {
+  onNavigateTab?: (tab: TabType) => void;
+}
+
+export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
   const { jobs, createJob, releaseRemainder, fxRate } = useAccount();
 
   const [freelancerInput, setFreelancerInput] = useState<string>('@arjun.monad');
@@ -83,11 +89,26 @@ export const ClientScreen: React.FC = () => {
     >
       {/* 1. PORTAL HERO */}
       <View style={styles.portalHero}>
-        <View style={styles.darkEyebrow}>
-          <Sparkles size={11} color={Colors.mint} />
-          <Text style={styles.darkEyebrowText}>
-            NADRUPEE · CLIENT ESCROW PORTAL <Text style={styles.eyebrowSub}>MONAD TESTNET</Text>
-          </Text>
+        <View style={styles.heroTopRow}>
+          <View style={styles.darkEyebrow}>
+            <Sparkles size={11} color={Colors.mint} />
+            <Text style={styles.darkEyebrowText}>
+              NADRUPEE · CLIENT ESCROW PORTAL <Text style={styles.eyebrowSub}>MONAD TESTNET</Text>
+            </Text>
+          </View>
+
+          {onNavigateTab && (
+            <TouchableOpacity
+              style={styles.switchBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onNavigateTab('freelancer');
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.switchBtnText}>Switch to Freelancer</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <Text style={styles.portalH1Em}>Fund work with certainty.</Text>
@@ -187,7 +208,7 @@ export const ClientScreen: React.FC = () => {
       </View>
 
       {/* 3. ACTIVE ESCROWS LIST */}
-      <View style={[styles.portalCard, { marginTop: 24 }]}>
+      <View style={[styles.portalCard, { marginTop: 20 }]}>
         <View style={styles.portalCardHeader}>
           <Text style={styles.sectionH2Em}>
             Created Escrows <Text style={styles.sectionH2White}>({jobs.length})</Text>
@@ -197,9 +218,23 @@ export const ClientScreen: React.FC = () => {
         <View style={styles.jobsList}>
           {jobs.length === 0 ? (
             <View style={styles.emptyContainer}>
+              <Text style={styles.emptyTitle}>No escrows created yet.</Text>
               <Text style={styles.emptyText}>
-                No escrows created yet. Use the form above to fund your first deliverable on Monad Testnet.
+                Use the form above to fund your first deliverable on Monad Testnet.
               </Text>
+              {onNavigateTab && (
+                <TouchableOpacity
+                  style={styles.emptyActionBtn}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    onNavigateTab('freelancer');
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.emptyActionBtnText}>Switch to Freelancer Portal</Text>
+                  <ArrowRight size={12} color={Colors.night} />
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             jobs.map((job) => {
@@ -276,12 +311,18 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.night,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 60,
   },
   portalHero: {
-    marginBottom: 24,
+    marginBottom: 20,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   darkEyebrow: {
     flexDirection: 'row',
@@ -292,36 +333,57 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(56, 217, 169, 0.25)',
-    alignSelf: 'flex-start',
-    marginBottom: 14,
+    backgroundColor: 'rgba(56, 217, 169, 0.08)',
   },
   darkEyebrowText: {
     fontSize: 10,
     fontWeight: '700',
     color: 'rgba(248, 250, 252, 0.75)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     letterSpacing: 0.5,
   },
   eyebrowSub: {
     color: Colors.mutedForeground,
     marginLeft: 4,
   },
+  switchBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  switchBtnText: {
+    color: Colors.paper,
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
   portalH1Em: {
-    fontSize: 30,
-    lineHeight: 34,
-    fontWeight: '500',
-    color: 'rgba(248, 250, 252, 0.5)',
+    fontSize: 32,
+    lineHeight: 36,
+    fontWeight: '400',
+    fontStyle: 'normal',
+    color: 'rgba(248, 250, 252, 0.50)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    letterSpacing: -0.6,
   },
   portalH1White: {
-    fontSize: 30,
-    lineHeight: 34,
+    fontSize: 32,
+    lineHeight: 36,
     fontWeight: '500',
     color: Colors.paper,
-    marginBottom: 10,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    letterSpacing: -0.6,
+    marginBottom: 8,
   },
   portalDesc: {
     fontSize: 13,
     color: 'rgba(248, 250, 252, 0.65)',
     lineHeight: 18,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    maxWidth: 380,
   },
   alertSuccess: {
     flexDirection: 'row',
@@ -332,12 +394,13 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(56, 217, 169, 0.3)',
     padding: 12,
     borderRadius: 12,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   alertSuccessText: {
     color: Colors.paper,
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     flex: 1,
   },
   portalCard: {
@@ -346,6 +409,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.nightCardBorder,
     borderRadius: 16,
     padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 6,
   },
   portalCardHeader: {
     flexDirection: 'row',
@@ -360,7 +428,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: Colors.mutedForeground,
-    letterSpacing: 0.5,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   inputGroup: {
     marginBottom: 14,
@@ -369,6 +439,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     letterSpacing: 0.5,
     marginBottom: 6,
   },
@@ -381,12 +452,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     color: Colors.paper,
     fontSize: 13,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   resolvedText: {
     fontSize: 11,
     color: Colors.mintBright,
     marginTop: 4,
     fontWeight: '500',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   amountWrap: {
     flexDirection: 'row',
@@ -403,11 +476,13 @@ const styles = StyleSheet.create({
     color: Colors.paper,
     fontSize: 14,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   amountSuffix: {
     color: Colors.mint,
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   splitsCard: {
     flexDirection: 'row',
@@ -421,23 +496,26 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     letterSpacing: 0.5,
   },
   splitsValMint: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.mintBright,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     marginTop: 2,
   },
   splitsVal: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     marginTop: 2,
   },
   actionBtn: {
-    height: 38,
-    borderRadius: 22,
+    height: 42,
+    borderRadius: 999,
     backgroundColor: Colors.paper,
     alignItems: 'center',
     justifyContent: 'center',
@@ -447,16 +525,20 @@ const styles = StyleSheet.create({
     color: Colors.night,
     fontSize: 12,
     fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   sectionH2Em: {
     fontSize: 17,
-    fontWeight: '500',
+    fontWeight: '400',
+    fontStyle: 'normal',
     color: 'rgba(248, 250, 252, 0.5)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   sectionH2White: {
     fontSize: 17,
     fontWeight: '500',
     color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   jobsList: {
     gap: 12,
@@ -478,6 +560,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     flex: 1,
     marginRight: 8,
   },
@@ -495,6 +578,7 @@ const styles = StyleSheet.create({
     color: Colors.mintBright,
     fontSize: 10,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   badgeMuted: {
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
@@ -505,6 +589,7 @@ const styles = StyleSheet.create({
     color: 'rgba(248, 250, 252, 0.7)',
     fontSize: 10,
     fontWeight: '500',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   jobItemMeta: {
     gap: 3,
@@ -512,6 +597,7 @@ const styles = StyleSheet.create({
   jobItemMetaText: {
     fontSize: 11,
     color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   claimedRow: {
     flexDirection: 'row',
@@ -523,21 +609,49 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.mintBright,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   emptyContainer: {
-    paddingVertical: 24,
+    paddingVertical: 28,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  emptyText: {
+  emptyTitle: {
     fontSize: 13,
-    color: Colors.mutedForeground,
+    fontWeight: '600',
+    color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     textAlign: 'center',
-    lineHeight: 18,
+    marginBottom: 4,
+  },
+  emptyText: {
+    fontSize: 12,
+    color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    textAlign: 'center',
+    lineHeight: 17,
+    maxWidth: 320,
+  },
+  emptyActionBtn: {
+    marginTop: 14,
+    paddingHorizontal: 18,
+    height: 38,
+    borderRadius: 999,
+    backgroundColor: Colors.paper,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  emptyActionBtnText: {
+    color: Colors.night,
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
 });
