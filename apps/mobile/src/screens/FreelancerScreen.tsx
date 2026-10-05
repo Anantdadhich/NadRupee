@@ -207,8 +207,13 @@ export const FreelancerScreen: React.FC = () => {
         </View>
 
         <View style={styles.jobsList}>
-          {jobs.map((job) => {
-            const totalInr = (job.amountUsd * fxRate).toLocaleString('en-IN');
+          {jobs.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No active on-chain escrow contracts found for this address.</Text>
+            </View>
+          ) : (
+            jobs.map((job) => {
+              const totalInr = (job.amountUsd * fxRate).toLocaleString('en-IN');
             const advanceInr = (job.partialAmountUsd * fxRate).toLocaleString('en-IN');
             const isFunded = job.state === JobState.Funded;
             const isPartial = job.state === JobState.PartiallyReleased;
@@ -276,11 +281,12 @@ export const FreelancerScreen: React.FC = () => {
                       <Check size={13} color={Colors.mintBright} />
                       <Text style={styles.claimedText}>100% Payout Finalized</Text>
                     </View>
-                  )}
+                    )}
+                  </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })
+          )}
         </View>
       </View>
 
@@ -293,32 +299,40 @@ export const FreelancerScreen: React.FC = () => {
         </View>
 
         <View style={styles.ledgerList}>
-          {ledger.map((item) => (
-            <View key={item.id} style={styles.ledgerItem}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.ledgerItemDesc}>{item.description}</Text>
-                <View style={styles.ledgerMeta}>
-                  <Text style={styles.ledgerTime}>{item.timestamp}</Text>
-                  {item.referenceCode && (
-                    <Text style={styles.ledgerUtr}>UTR: {item.referenceCode}</Text>
-                  )}
+          {ledger.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                No transactions recorded yet. Activity will appear after payouts or settlements.
+              </Text>
+            </View>
+          ) : (
+            ledger.map((item) => (
+              <View key={item.id} style={styles.ledgerItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.ledgerItemDesc}>{item.description}</Text>
+                  <View style={styles.ledgerMeta}>
+                    <Text style={styles.ledgerTime}>{item.timestamp}</Text>
+                    {item.referenceCode && (
+                      <Text style={styles.ledgerUtr}>UTR: {item.referenceCode}</Text>
+                    )}
+                  </View>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text
+                    style={[
+                      styles.ledgerAmount,
+                      item.isCredit ? styles.amountCredit : styles.amountDebit,
+                    ]}
+                  >
+                    {item.isCredit ? '+' : '-'}₹{item.amountInr.toLocaleString('en-IN')}
+                  </Text>
+                  <Text style={styles.ledgerUsd}>
+                    {item.isCredit ? '+' : '-'}${item.amountUsd} AUSD
+                  </Text>
                 </View>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text
-                  style={[
-                    styles.ledgerAmount,
-                    item.isCredit ? styles.amountCredit : styles.amountDebit,
-                  ]}
-                >
-                  {item.isCredit ? '+' : '-'}₹{item.amountInr.toLocaleString('en-IN')}
-                </Text>
-                <Text style={styles.ledgerUsd}>
-                  {item.isCredit ? '+' : '-'}${item.amountUsd} AUSD
-                </Text>
-              </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
       </View>
 
@@ -677,5 +691,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.paperDim,
     marginTop: 1,
+  },
+  emptyContainer: {
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  emptyText: {
+    fontSize: 13,
+    color: Colors.mutedForeground,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

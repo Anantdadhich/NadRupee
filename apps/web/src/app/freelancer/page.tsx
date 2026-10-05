@@ -93,6 +93,7 @@ export default function FreelancerDashboardPage() {
     isConnecting,
     walletClient,
     storedCredentialId,
+    showTestnetPasskey,
     signUp,
     signIn,
     connectTestnetPasskey,
@@ -413,21 +414,23 @@ export default function FreelancerDashboardPage() {
             </div>
           ) : (
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <button
-                onClick={connectTestnetPasskey}
-                disabled={isConnecting}
-                className="signin"
-                style={{
-                  background: "color-mix(in oklab, var(--mint) 15%, transparent)",
-                  border: "1px solid var(--mint)",
-                  color: "var(--mint)",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-                title="Instant 1-Click Passkey for Local & Testnet Testing"
-              >
-                Testnet Passkey
-              </button>
+              {showTestnetPasskey && (
+                <button
+                  onClick={connectTestnetPasskey}
+                  disabled={isConnecting}
+                  className="signin"
+                  style={{
+                    background: "color-mix(in oklab, var(--mint) 15%, transparent)",
+                    border: "1px solid var(--mint)",
+                    color: "var(--mint)",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                  title="Instant 1-Click Passkey for Local & Testnet Testing"
+                >
+                  Testnet Passkey
+                </button>
+              )}
               <button
                 onClick={handleAuthAction}
                 disabled={isConnecting}

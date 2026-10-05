@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandMark } from './BrandMark';
 import { Colors } from '../theme/colors';
 import { useAccount } from '../context/AccountContext';
+import { isLocalOrTestEnvironment } from '../constants/config';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Check, Copy } from 'lucide-react-native';
@@ -83,14 +84,16 @@ export const Header: React.FC<Props> = ({ activeTab, onTabChange }) => {
             </View>
           ) : (
             <View style={styles.authRow}>
-              <TouchableOpacity
-                onPress={connectTestnetPasskey}
-                disabled={isConnecting}
-                style={styles.testnetBtn}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.testnetBtnText}>Testnet Passkey</Text>
-              </TouchableOpacity>
+              {isLocalOrTestEnvironment() && (
+                <TouchableOpacity
+                  onPress={connectTestnetPasskey}
+                  disabled={isConnecting}
+                  style={styles.testnetBtn}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.testnetBtnText}>Testnet Passkey</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 onPress={connectBiometricPasskey}
                 disabled={isConnecting}

@@ -195,67 +195,75 @@ export const ClientScreen: React.FC = () => {
         </View>
 
         <View style={styles.jobsList}>
-          {jobs.map((job) => {
-            const isFunded = job.state === JobState.Funded;
-            const isPartial = job.state === JobState.PartiallyReleased;
-            const isCompleted = job.state === JobState.Completed;
-            const isActing = actionJobId === job.id;
+          {jobs.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                No escrows created yet. Use the form above to fund your first deliverable on Monad Testnet.
+              </Text>
+            </View>
+          ) : (
+            jobs.map((job) => {
+              const isFunded = job.state === JobState.Funded;
+              const isPartial = job.state === JobState.PartiallyReleased;
+              const isCompleted = job.state === JobState.Completed;
+              const isActing = actionJobId === job.id;
 
-            return (
-              <View key={job.id} style={styles.jobItemCard}>
-                <View style={styles.jobItemTop}>
-                  <Text style={styles.jobItemTitle}>{job.title}</Text>
-                  <View
-                    style={[
-                      styles.stateBadge,
-                      isCompleted || isPartial ? styles.badgeMint : styles.badgeMuted,
-                    ]}
-                  >
-                    <Text
-                      style={
-                        isCompleted || isPartial ? styles.badgeMintText : styles.badgeMutedText
-                      }
+              return (
+                <View key={job.id} style={styles.jobItemCard}>
+                  <View style={styles.jobItemTop}>
+                    <Text style={styles.jobItemTitle}>{job.title}</Text>
+                    <View
+                      style={[
+                        styles.stateBadge,
+                        isCompleted || isPartial ? styles.badgeMint : styles.badgeMuted,
+                      ]}
                     >
-                      {JOB_STATE_LABELS[job.state]}
+                      <Text
+                        style={
+                          isCompleted || isPartial ? styles.badgeMintText : styles.badgeMutedText
+                        }
+                      >
+                        {JOB_STATE_LABELS[job.state]}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.jobItemMeta}>
+                    <Text style={styles.jobItemMetaText}>
+                      Freelancer: <Text style={{ color: Colors.paper }}>{job.freelancer.slice(0, 6)}...{job.freelancer.slice(-4)}</Text>
+                    </Text>
+                    <Text style={styles.jobItemMetaText}>
+                      Total Locked: <Text style={{ color: Colors.paper, fontWeight: '700' }}>${job.amountUsd} AUSD</Text>
                     </Text>
                   </View>
+
+                  {isPartial && (
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() => handleReleaseRemainder(job.id)}
+                      disabled={isActing}
+                      activeOpacity={0.8}
+                    >
+                      {isActing ? (
+                        <ActivityIndicator color={Colors.night} />
+                      ) : (
+                        <Text style={styles.actionBtnText}>
+                          Approve Milestone & Release 20% (${job.remainderAmountUsd} AUSD)
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+
+                  {isCompleted && (
+                    <View style={styles.claimedRow}>
+                      <Check size={13} color={Colors.mintBright} />
+                      <Text style={styles.claimedText}>Milestone Settled 100%</Text>
+                    </View>
+                  )}
                 </View>
-
-                <View style={styles.jobItemMeta}>
-                  <Text style={styles.jobItemMetaText}>
-                    Freelancer: <Text style={{ color: Colors.paper }}>{job.freelancer.slice(0, 6)}...{job.freelancer.slice(-4)}</Text>
-                  </Text>
-                  <Text style={styles.jobItemMetaText}>
-                    Total Locked: <Text style={{ color: Colors.paper, fontWeight: '700' }}>${job.amountUsd} AUSD</Text>
-                  </Text>
-                </View>
-
-                {isPartial && (
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => handleReleaseRemainder(job.id)}
-                    disabled={isActing}
-                    activeOpacity={0.8}
-                  >
-                    {isActing ? (
-                      <ActivityIndicator color={Colors.night} />
-                    ) : (
-                      <Text style={styles.actionBtnText}>
-                        Approve Milestone & Release 20% (${job.remainderAmountUsd} AUSD)
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-
-                {isCompleted && (
-                  <View style={styles.claimedRow}>
-                    <Check size={13} color={Colors.mintBright} />
-                    <Text style={styles.claimedText}>Milestone Settled 100%</Text>
-                  </View>
-                )}
-              </View>
-            );
-          })}
+              );
+            })
+          )}
         </View>
       </View>
     </ScrollView>
@@ -515,5 +523,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.mintBright,
     fontWeight: '600',
+  },
+  emptyContainer: {
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  emptyText: {
+    fontSize: 13,
+    color: Colors.mutedForeground,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

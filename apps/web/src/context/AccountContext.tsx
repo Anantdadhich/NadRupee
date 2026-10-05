@@ -13,6 +13,7 @@ import {
   formatAuthError,
   type AuthSession,
 } from "../lib/mera/auth";
+import { isLocalOrTestEnvironment } from "../lib/contracts/config";
 
 export interface AccountContextType {
   address: Address | null;
@@ -23,6 +24,7 @@ export interface AccountContextType {
   error: string | null;
   isPrfUnavailable: boolean;
   storedCredentialId: string | null;
+  showTestnetPasskey: boolean;
   signUp: (username?: string) => Promise<void>;
   signIn: () => Promise<void>;
   connectTestnetPasskey: () => void;
@@ -40,6 +42,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [isPrfUnavailable, setIsPrfUnavailable] = useState(false);
   const [storedCredentialId, setStoredCredentialIdState] = useState<string | null>(null);
+  const [showTestnetPasskey, setShowTestnetPasskey] = useState(false);
 
   const handleAuthSuccess = useCallback((session: AuthSession) => {
     setAddress(session.account.address);
@@ -50,11 +53,14 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     setIsPrfUnavailable(false);
   }, []);
 
-  // Sync stored credential ID from localStorage on mount and auto-restore if active
+  // Sync stored credential ID from localStorage on mount and auto-restore if active in local dev
   useEffect(() => {
+    const isLocal = isLocalOrTestEnvironment();
+    setShowTestnetPasskey(isLocal);
+
     const credId = getStoredCredentialId();
     setStoredCredentialIdState(credId);
-    if (credId === TESTNET_PASSKEY_CREDENTIAL_ID) {
+    if (isLocal && credId === TESTNET_PASSKEY_CREDENTIAL_ID) {
       try {
         const session = getTestnetDevPasskeySession();
         handleAuthSuccess(session);
@@ -138,6 +144,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         error,
         isPrfUnavailable,
         storedCredentialId,
+        showTestnetPasskey,
         signUp,
         signIn,
         connectTestnetPasskey,

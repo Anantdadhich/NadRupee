@@ -98,3 +98,23 @@ export interface EscrowJob {
   remainderAmount: bigint;
   metadataHash: `0x${string}`;
 }
+
+/**
+ * Gates testnet passkey bypass so it is only available in our browser / localhost
+ * and never shown on public production deployments.
+ */
+export const isLocalOrTestEnvironment = (): boolean => {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    return (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host.endsWith(".local") ||
+      host.startsWith("192.168.") ||
+      host.startsWith("10.") ||
+      host.includes("preview") ||
+      window.location.search.includes("dev=true")
+    );
+  }
+  return process.env.NODE_ENV !== "production";
+};

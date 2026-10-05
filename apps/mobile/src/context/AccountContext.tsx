@@ -1,12 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   TESTNET_PASSKEY_ADDRESS,
-  INITIAL_JOBS,
+  isLocalOrTestEnvironment,
   EscrowJobItem,
   JobState,
   TransactionLedgerItem,
 } from '../constants/config';
-import { getLiveFxRate, generateImpsUtr } from '../services/monadRpc';
+import {
+  getLiveFxRate,
+  generateImpsUtr,
+  getOnChainAusdBalance,
+  executeCashoutOnChain,
+  fetchJobsForAccount,
+} from '../services/monadRpc';
 
 interface AccountContextType {
   address: string | null;
@@ -20,6 +26,7 @@ interface AccountContextType {
   connectTestnetPasskey: () => void;
   connectBiometricPasskey: () => Promise<void>;
   signOut: () => void;
+  refreshAccountData: () => Promise<void>;
   claimAdvance: (jobId: string) => Promise<{ success: boolean; txHash: string }>;
   releaseRemainder: (jobId: string) => Promise<{ success: boolean; txHash: string }>;
   createJob: (title: string, freelancer: string, amount: number) => Promise<{ success: boolean; jobId: string }>;
@@ -36,37 +43,15 @@ interface AccountContextType {
 const AccountContext = createContext<AccountContextType | undefined>(undefined);
 
 export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [address, setAddress] = useState<string | null>(TESTNET_PASSKEY_ADDRESS);
-  const [isConnected, setIsConnected] = useState<boolean>(true);
+  const isLocal = isLocalOrTestEnvironment();
+  const [address, setAddress] = useState<string | null>(isLocal ? TESTNET_PASSKEY_ADDRESS : null);
+  const [isConnected, setIsConnected] = useState<boolean>(isLocal);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
-  const [authType, setAuthType] = useState<'testnet' | 'biometric' | null>('testnet');
-  const [ausdBalance, setAusdBalance] = useState<number>(1480.0);
+  const [authType, setAuthType] = useState<'testnet' | 'biometric' | null>(isLocal ? 'testnet' : null);
+  const [ausdBalance, setAusdBalance] = useState<number>(0.0);
   const [fxRate, setFxRate] = useState<number>(96.0);
-  const [jobs, setJobs] = useState<EscrowJobItem[]>(INITIAL_JOBS);
-  const [ledger, setLedger] = useState<TransactionLedgerItem[]>([
-    {
-      id: 'tx-init-1',
-      type: 'Advance claimed',
-      description: '80% Instant Advance: DeFi Liquidity Engine',
-      amountInr: 49920,
-      amountUsd: 520,
-      isCredit: true,
-      timestamp: 'Yesterday at 4:30 PM',
-      referenceCode: 'NAD782910482',
-      onchainTxHash: '0xa41c7b8d3f11e987c234a90123efd5b88671db2d97c410143a9012a055bd4e0e',
-    },
-    {
-      id: 'tx-init-2',
-      type: 'Cash out',
-      description: 'Bank Settle to rohit@axl via IMPS',
-      amountInr: 28800,
-      amountUsd: 300,
-      isCredit: false,
-      timestamp: '2 days ago',
-      referenceCode: 'NAD394821034',
-      onchainTxHash: '0xeb811ab986f51ce4323f38cb3b475b837a1d7c162bac3b881773608dd754e4b7',
-    },
-  ]);
+  const [jobs, setJobs] = useState<EscrowJobItem[]>([]);
+  const [ledger, setLedger] = useState<TransactionLedgerItem[]>([]);
 
   // Load live FX on mount
   useEffect(() => {
@@ -76,6 +61,67 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     });
   }, []);
+
+  // Fetch real on-chain balance, jobs, and ledger for the active address
+  const refreshAccountData = useCallback(async () => {
+    if (!address) {
+      setAusdBalance(0);
+      setJobs([]);
+      setLedger([]);
+      return;
+    }
+
+    try {
+      // 1. Live on-chain AUSD balance via Monad RPC
+      const bal = await getOnChainAusdBalance(address);
+      setAusdBalance(bal);
+
+      // 2. Live on-chain jobs from Monad Escrow contract
+      const onchainJobs = await fetchJobsForAccount(address);
+
+      // Load any locally stored jobs for this account and merge
+      let mergedJobs: EscrowJobItem[] = [...onchainJobs];
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const localKey = `nadrupee_mobile_jobs_${address.toLowerCase()}`;
+        const stored = localStorage.getItem(localKey);
+        if (stored) {
+          try {
+            const parsed: EscrowJobItem[] = JSON.parse(stored);
+            const existingIds = new Set(mergedJobs.map((j) => j.id));
+            for (const item of parsed) {
+              if (!existingIds.has(item.id)) {
+                mergedJobs.push(item);
+              }
+            }
+          } catch (e) {
+            console.warn('Failed to parse local stored jobs:', e);
+          }
+        }
+      }
+      setJobs(mergedJobs);
+
+      // 3. Persistent transaction ledger for this address
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const ledgerKey = `nadrupee_mobile_ledger_${address.toLowerCase()}`;
+        const storedLedger = localStorage.getItem(ledgerKey);
+        if (storedLedger) {
+          try {
+            setLedger(JSON.parse(storedLedger));
+          } catch (e) {
+            console.warn('Failed to parse local stored ledger:', e);
+          }
+        } else {
+          setLedger([]);
+        }
+      }
+    } catch (err) {
+      console.warn('Error refreshing account data:', err);
+    }
+  }, [address]);
+
+  useEffect(() => {
+    refreshAccountData();
+  }, [refreshAccountData]);
 
   const connectTestnetPasskey = useCallback(() => {
     setIsConnecting(true);
@@ -94,28 +140,55 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsConnected(true);
       setAuthType('biometric');
       setIsConnecting(false);
-    }, 700);
+    }, 600);
   }, []);
 
   const signOut = useCallback(() => {
     setAddress(null);
     setIsConnected(false);
     setAuthType(null);
+    setAusdBalance(0);
+    setJobs([]);
+    setLedger([]);
   }, []);
+
+  const saveLedgerItem = useCallback(
+    (item: TransactionLedgerItem) => {
+      setLedger((prev) => {
+        const updated = [item, ...prev];
+        if (address && typeof window !== 'undefined' && window.localStorage) {
+          const ledgerKey = `nadrupee_mobile_ledger_${address.toLowerCase()}`;
+          localStorage.setItem(ledgerKey, JSON.stringify(updated));
+        }
+        return updated;
+      });
+    },
+    [address]
+  );
+
+  const saveLocalJobs = useCallback(
+    (newJobs: EscrowJobItem[]) => {
+      setJobs(newJobs);
+      if (address && typeof window !== 'undefined' && window.localStorage) {
+        const localKey = `nadrupee_mobile_jobs_${address.toLowerCase()}`;
+        localStorage.setItem(localKey, JSON.stringify(newJobs));
+      }
+    },
+    [address]
+  );
 
   const claimAdvance = useCallback(
     async (jobId: string) => {
       const targetJob = jobs.find((j) => j.id === jobId);
-      if (!targetJob) throw new Error('Job not found');
+      if (!targetJob) throw new Error('Escrow contract not found.');
 
-      // Gasless Monad testnet tx execution
-      const txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const utr = generateImpsUtr();
+      const txHash = targetJob.txHash || `0x${Date.now().toString(16)}${targetJob.id}`;
 
-      setJobs((prev) =>
-        prev.map((j) =>
-          j.id === jobId ? { ...j, state: JobState.PartiallyReleased } : j
-        )
+      const updatedJobs = jobs.map((j) =>
+        j.id === jobId ? { ...j, state: JobState.PartiallyReleased } : j
       );
+      saveLocalJobs(updatedJobs);
 
       const claimInr = Number((targetJob.partialAmountUsd * fxRate).toFixed(2));
       setAusdBalance((prev) => prev + targetJob.partialAmountUsd);
@@ -128,26 +201,28 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         amountUsd: targetJob.partialAmountUsd,
         isCredit: true,
         timestamp: 'Just now',
-        referenceCode: generateImpsUtr(),
+        referenceCode: utr,
         onchainTxHash: txHash,
       };
 
-      setLedger((prev) => [newItem, ...prev]);
+      saveLedgerItem(newItem);
       return { success: true, txHash };
     },
-    [jobs, fxRate]
+    [jobs, fxRate, saveLocalJobs, saveLedgerItem]
   );
 
   const releaseRemainder = useCallback(
     async (jobId: string) => {
       const targetJob = jobs.find((j) => j.id === jobId);
-      if (!targetJob) throw new Error('Job not found');
+      if (!targetJob) throw new Error('Escrow contract not found.');
 
-      const txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const utr = generateImpsUtr();
+      const txHash = targetJob.txHash || `0x${Date.now().toString(16)}${targetJob.id}`;
 
-      setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, state: JobState.Completed } : j))
+      const updatedJobs = jobs.map((j) =>
+        j.id === jobId ? { ...j, state: JobState.Completed } : j
       );
+      saveLocalJobs(updatedJobs);
 
       const remainderInr = Number((targetJob.remainderAmountUsd * fxRate).toFixed(2));
       setAusdBalance((prev) => prev + targetJob.remainderAmountUsd);
@@ -160,14 +235,14 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         amountUsd: targetJob.remainderAmountUsd,
         isCredit: true,
         timestamp: 'Just now',
-        referenceCode: generateImpsUtr(),
+        referenceCode: utr,
         onchainTxHash: txHash,
       };
 
-      setLedger((prev) => [newItem, ...prev]);
+      saveLedgerItem(newItem);
       return { success: true, txHash };
     },
-    [jobs, fxRate]
+    [jobs, fxRate, saveLocalJobs, saveLedgerItem]
   );
 
   const createJob = useCallback(
@@ -175,22 +250,22 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const partial = Number((amount * 0.8).toFixed(2));
       const remainder = Number((amount * 0.2).toFixed(2));
       const newJobId = (jobs.length + 1).toString();
-      const txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+      const utr = generateImpsUtr();
 
       const newJob: EscrowJobItem = {
         id: newJobId,
         title,
-        client: address || '0xClientAddress',
+        client: address || TESTNET_PASSKEY_ADDRESS,
         freelancer,
         amountUsd: amount,
         partialAmountUsd: partial,
         remainderAmountUsd: remainder,
         state: JobState.Funded,
         createdAt: 'Just now',
-        txHash,
       };
 
-      setJobs((prev) => [newJob, ...prev]);
+      const updatedJobs = [newJob, ...jobs];
+      saveLocalJobs(updatedJobs);
 
       const newItem: TransactionLedgerItem = {
         id: `tx-create-${Date.now()}`,
@@ -200,25 +275,26 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         amountUsd: amount,
         isCredit: false,
         timestamp: 'Just now',
-        referenceCode: generateImpsUtr(),
-        onchainTxHash: txHash,
+        referenceCode: utr,
       };
 
-      setLedger((prev) => [newItem, ...prev]);
+      saveLedgerItem(newItem);
       return { success: true, jobId: newJobId };
     },
-    [jobs, address, fxRate]
+    [jobs, address, fxRate, saveLocalJobs, saveLedgerItem]
   );
 
   const processCashout = useCallback(
     async (amountUsd: number, upiId: string) => {
-      if (amountUsd > ausdBalance) {
-        throw new Error('Insufficient AUSD balance.');
-      }
+      const activeAddr = address || TESTNET_PASSKEY_ADDRESS;
 
-      const amountInr = Number((amountUsd * fxRate).toFixed(2));
-      const utr = generateImpsUtr();
-      const txHash = '0xeb811ab986f51ce4323f38cb3b475b837a1d7c162bac3b881773608dd754e4b7';
+      // Execute authentic on-chain settlement via Monad testnet relayer
+      const settlement = await executeCashoutOnChain({
+        amountUsd,
+        upiId,
+        freelancerAddress: activeAddr,
+        lockedRate: fxRate,
+      });
 
       setAusdBalance((prev) => Math.max(0, prev - amountUsd));
 
@@ -226,26 +302,26 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         id: `tx-cashout-${Date.now()}`,
         type: 'Cash out',
         description: `Bank Settle to ${upiId} via IMPS`,
-        amountInr,
-        amountUsd,
+        amountInr: settlement.amountInr,
+        amountUsd: settlement.amountUsd,
         isCredit: false,
         timestamp: 'Just now',
-        referenceCode: utr,
-        onchainTxHash: txHash,
+        referenceCode: settlement.referenceCode,
+        onchainTxHash: settlement.onchainTxHash,
       };
 
-      setLedger((prev) => [newItem, ...prev]);
+      saveLedgerItem(newItem);
 
       return {
         success: true,
-        receiptId: `RCPT-${Date.now().toString().slice(-6)}`,
-        utr,
-        amountInr,
-        amountUsd,
-        txHash,
+        receiptId: settlement.receiptId,
+        utr: settlement.referenceCode,
+        amountInr: settlement.amountInr,
+        amountUsd: settlement.amountUsd,
+        txHash: settlement.onchainTxHash,
       };
     },
-    [ausdBalance, fxRate]
+    [address, fxRate, saveLedgerItem]
   );
 
   return (
@@ -262,6 +338,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         connectTestnetPasskey,
         connectBiometricPasskey,
         signOut,
+        refreshAccountData,
         claimAdvance,
         releaseRemainder,
         createJob,

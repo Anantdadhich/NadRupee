@@ -45,6 +45,7 @@ export default function OfframpPage() {
     isConnected,
     isConnecting,
     storedCredentialId,
+    showTestnetPasskey,
     signUp,
     signIn,
     connectTestnetPasskey,
@@ -154,14 +155,16 @@ export default function OfframpPage() {
               </div>
             ) : (
               <div className="hidden sm:flex items-center gap-2">
-                <button
-                  onClick={connectTestnetPasskey}
-                  disabled={isConnecting}
-                  className="text-xs font-semibold px-3 py-2 rounded-xl bg-[oklch(0.73_0.105_169)]/15 border border-[oklch(0.73_0.105_169)] text-[oklch(0.73_0.105_169)] hover:brightness-110 transition-all cursor-pointer"
-                  title="Instant 1-Click Passkey for Local & Testnet Testing"
-                >
-                  ⚡ Testnet Passkey
-                </button>
+                {showTestnetPasskey && (
+                  <button
+                    onClick={connectTestnetPasskey}
+                    disabled={isConnecting}
+                    className="text-xs font-semibold px-3 py-2 rounded-xl bg-[oklch(0.73_0.105_169)]/15 border border-[oklch(0.73_0.105_169)] text-[oklch(0.73_0.105_169)] hover:brightness-110 transition-all cursor-pointer"
+                    title="Instant 1-Click Passkey for Local & Testnet Testing"
+                  >
+                    ⚡ Testnet Passkey
+                  </button>
+                )}
                 <button
                   onClick={handleAuthAction}
                   disabled={isConnecting}
