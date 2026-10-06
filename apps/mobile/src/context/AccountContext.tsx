@@ -11,6 +11,7 @@ import {
   generateImpsUtr,
   getOnChainAusdBalance,
   executeCashoutOnChain,
+  executeSendAusdOnChain,
   fetchJobsForAccount,
 } from '../services/monadRpc';
 
@@ -30,6 +31,7 @@ interface AccountContextType {
   claimAdvance: (jobId: string) => Promise<{ success: boolean; txHash: string }>;
   releaseRemainder: (jobId: string) => Promise<{ success: boolean; txHash: string }>;
   createJob: (title: string, freelancer: string, amount: number) => Promise<{ success: boolean; jobId: string }>;
+  sendAusd: (recipient: string, amountUsd: number) => Promise<{ success: boolean; txHash: string }>;
   processCashout: (amountUsd: number, upiId: string) => Promise<{
     success: boolean;
     receiptId: string;
@@ -183,7 +185,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!targetJob) throw new Error('Escrow contract not found.');
 
       const utr = generateImpsUtr();
-      const txHash = targetJob.txHash || `0x${Date.now().toString(16)}${targetJob.id}`;
+      const txHash = targetJob.txHash || '';
 
       const updatedJobs = jobs.map((j) =>
         j.id === jobId ? { ...j, state: JobState.PartiallyReleased } : j
@@ -202,7 +204,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isCredit: true,
         timestamp: 'Just now',
         referenceCode: utr,
-        onchainTxHash: txHash,
+        ...(txHash ? { onchainTxHash: txHash } : {}),
       };
 
       saveLedgerItem(newItem);
@@ -217,7 +219,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!targetJob) throw new Error('Escrow contract not found.');
 
       const utr = generateImpsUtr();
-      const txHash = targetJob.txHash || `0x${Date.now().toString(16)}${targetJob.id}`;
+      const txHash = targetJob.txHash || '';
 
       const updatedJobs = jobs.map((j) =>
         j.id === jobId ? { ...j, state: JobState.Completed } : j
@@ -236,7 +238,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isCredit: true,
         timestamp: 'Just now',
         referenceCode: utr,
-        onchainTxHash: txHash,
+        ...(txHash ? { onchainTxHash: txHash } : {}),
       };
 
       saveLedgerItem(newItem);
@@ -282,6 +284,36 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return { success: true, jobId: newJobId };
     },
     [jobs, address, fxRate, saveLocalJobs, saveLedgerItem]
+  );
+
+  const sendAusd = useCallback(
+    async (recipient: string, amountUsd: number) => {
+      const activeAddr = address || TESTNET_PASSKEY_ADDRESS;
+
+      // Real onchain / relayer transfer
+      const res = await executeSendAusdOnChain({
+        owner: activeAddr,
+        recipient,
+        amountUsd,
+      });
+
+      setAusdBalance((prev) => Math.max(0, prev - amountUsd));
+
+      const newItem: TransactionLedgerItem = {
+        id: `tx-send-${Date.now()}`,
+        type: 'Payment received',
+        description: `Direct Transfer to ${recipient.slice(0, 8)}...${recipient.slice(-4)}`,
+        amountInr: Number((amountUsd * fxRate).toFixed(2)),
+        amountUsd,
+        isCredit: false,
+        timestamp: 'Just now',
+        onchainTxHash: res.txHash,
+      };
+
+      saveLedgerItem(newItem);
+      return { success: true, txHash: res.txHash };
+    },
+    [address, fxRate, saveLedgerItem]
   );
 
   const processCashout = useCallback(
@@ -342,6 +374,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         claimAdvance,
         releaseRemainder,
         createJob,
+        sendAusd,
         processCashout,
       }}
     >

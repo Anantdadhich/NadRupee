@@ -10,8 +10,10 @@ import {
 import { Colors } from '../theme/colors';
 import { useAccount } from '../context/AccountContext';
 import { CashoutModal } from '../components/CashoutModal';
+import { SendAusdModal } from '../components/SendAusdModal';
 import { JobState, JOB_STATE_LABELS, ESCROW_CONTRACT_ADDRESS } from '../constants/config';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import {
   Sparkles,
   Check,
@@ -39,6 +41,7 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
   } = useAccount();
 
   const [cashoutVisible, setCashoutVisible] = useState<boolean>(false);
+  const [sendAusdVisible, setSendAusdVisible] = useState<boolean>(false);
   const [claimingJobId, setClaimingJobId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [claimSuccessMsg, setClaimSuccessMsg] = useState<string | null>(null);
@@ -150,7 +153,7 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
             <View style={styles.footerActions}>
               <TouchableOpacity
                 style={styles.actionBtnDark}
-                onPress={() => setCashoutVisible(true)}
+                onPress={() => setSendAusdVisible(true)}
                 activeOpacity={0.8}
               >
                 <Send size={12} color={Colors.paper} />
@@ -380,6 +383,21 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
                     {item.referenceCode && (
                       <Text style={styles.ledgerUtr}>UTR: {item.referenceCode}</Text>
                     )}
+                    {item.onchainTxHash && (
+                      <TouchableOpacity
+                        onPress={async () => {
+                          await Clipboard.setStringAsync(item.onchainTxHash!);
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        }}
+                        style={styles.ledgerTxBadge}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.ledgerTxText}>
+                          Tx: {item.onchainTxHash.slice(0, 6)}...{item.onchainTxHash.slice(-4)}
+                        </Text>
+                        <ExternalLink size={9} color={Colors.mint} />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
@@ -406,6 +424,13 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
         visible={cashoutVisible}
         onClose={() => setCashoutVisible(false)}
         defaultAmount={Math.min(500, Math.floor(ausdBalance))}
+      />
+
+      {/* Send AUSD Modal */}
+      <SendAusdModal
+        visible={sendAusdVisible}
+        onClose={() => setSendAusdVisible(false)}
+        defaultAmount={Math.min(50, Math.floor(ausdBalance))}
       />
     </ScrollView>
   );
@@ -806,6 +831,20 @@ const styles = StyleSheet.create({
   },
   ledgerUtr: {
     fontSize: 10,
+    color: Colors.mint,
+    fontFamily: 'monospace',
+  },
+  ledgerTxBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(56, 217, 169, 0.08)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  ledgerTxText: {
+    fontSize: 9,
     color: Colors.mint,
     fontFamily: 'monospace',
   },

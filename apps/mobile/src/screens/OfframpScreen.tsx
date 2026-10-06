@@ -15,10 +15,16 @@ import {
   Sparkles,
   CheckCircle2,
   TrendingUp,
+  ArrowRight,
 } from 'lucide-react-native';
+import { TabType } from '../components/BottomNav';
 
-export const OfframpScreen: React.FC = () => {
-  const { fxRate } = useAccount();
+interface Props {
+  onNavigateTab?: (tab: TabType) => void;
+}
+
+export const OfframpScreen: React.FC<Props> = ({ onNavigateTab }) => {
+  const { fxRate, ausdBalance } = useAccount();
 
   const [inputUsd, setInputUsd] = useState<string>('250');
   const [cashoutVisible, setCashoutVisible] = useState<boolean>(false);
@@ -41,11 +47,26 @@ export const OfframpScreen: React.FC = () => {
     >
       {/* 1. PORTAL HERO */}
       <View style={styles.portalHero}>
-        <View style={styles.darkEyebrow}>
-          <Sparkles size={11} color={Colors.mint} />
-          <Text style={styles.darkEyebrowText}>
-            NADRUPEE · INSTANT INR OFF-RAMP RAIL <Text style={styles.eyebrowSub}>ONMETA</Text>
-          </Text>
+        <View style={styles.heroTopRow}>
+          <View style={styles.darkEyebrow}>
+            <Sparkles size={11} color={Colors.mint} />
+            <Text style={styles.darkEyebrowText}>
+              NADRUPEE · INSTANT INR OFF-RAMP RAIL <Text style={styles.eyebrowSub}>ONMETA</Text>
+            </Text>
+          </View>
+
+          {onNavigateTab && (
+            <TouchableOpacity
+              style={styles.switchBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onNavigateTab('freelancer');
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.switchBtnText}>Freelancer Portal</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <Text style={styles.portalH1Em}>Get Paid in Crypto.</Text>
@@ -182,6 +203,26 @@ const styles = StyleSheet.create({
   portalHero: {
     marginBottom: 24,
   },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  switchBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  switchBtnText: {
+    color: Colors.paper,
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
   darkEyebrow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -192,7 +233,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(56, 217, 169, 0.25)',
     alignSelf: 'flex-start',
-    marginBottom: 14,
   },
   darkEyebrowText: {
     fontSize: 10,

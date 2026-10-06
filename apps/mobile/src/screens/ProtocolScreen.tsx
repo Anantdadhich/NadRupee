@@ -99,9 +99,11 @@ export const ProtocolScreen: React.FC = () => {
 
         <View style={styles.metricRow}>
           <Text style={styles.metricKey}>Status:</Text>
-          <View style={styles.badgeMint}>
-            <Check size={10} color={Colors.mintBright} />
-            <Text style={styles.badgeMintText}>healthy</Text>
+          <View style={[styles.badgeMint, relayerHealth?.status === 'error' && { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
+            <Check size={10} color={relayerHealth?.status === 'error' ? '#f87171' : Colors.mintBright} />
+            <Text style={[styles.badgeMintText, relayerHealth?.status === 'error' && { color: '#f87171' }]}>
+              {relayerHealth ? relayerHealth.status : 'checking...'}
+            </Text>
           </View>
         </View>
 
@@ -125,24 +127,29 @@ export const ProtocolScreen: React.FC = () => {
 
         <View style={styles.metricRow}>
           <Text style={styles.metricKey}>MON Balance:</Text>
-          <Text style={styles.metricValMint}>
-            {relayerHealth ? `${relayerHealth.balanceMon} MON` : '9.5706 MON'}
-          </Text>
+          {relayerHealth ? (
+            <Text style={styles.metricValMint}>{relayerHealth.balanceMon} MON</Text>
+          ) : (
+            <ActivityIndicator size="small" color={Colors.mint} />
+          )}
         </View>
 
         <View style={styles.metricRow}>
           <Text style={styles.metricKey}>Monad Block:</Text>
-          <Text style={styles.metricVal}>
-            {blockNumber ? `#${blockNumber.toLocaleString()}` : '#1,948,201'}
-          </Text>
+          {blockNumber && blockNumber > 0 ? (
+            <Text style={styles.metricVal}>#{blockNumber.toLocaleString()}</Text>
+          ) : (
+            <ActivityIndicator size="small" color={Colors.paperDim} />
+          )}
         </View>
 
         <View style={styles.cardNoteRow}>
           <Text style={styles.cardNoteText}>
-            Relayer wallet is adequately funded and operational. Sponsored meta-transactions execute under 1 second.
+            {relayerHealth?.message || 'Querying Monad Testnet validator RPC...'}
           </Text>
         </View>
       </View>
+
 
       {/* 3. VERIFIED CONTRACTS */}
       <View style={[styles.portalCard, { marginTop: 24 }]}>

@@ -35,7 +35,7 @@ function MainApp() {
         {activeTab === 'home' && <HomeScreen onNavigateTab={setActiveTab} />}
         {activeTab === 'freelancer' && <FreelancerScreen onNavigateTab={setActiveTab} />}
         {activeTab === 'client' && <ClientScreen onNavigateTab={setActiveTab} />}
-        {activeTab === 'offramp' && <OfframpScreen />}
+        {activeTab === 'offramp' && <OfframpScreen onNavigateTab={setActiveTab} />}
         {activeTab === 'protocol' && <ProtocolScreen />}
       </View>
     </View>
