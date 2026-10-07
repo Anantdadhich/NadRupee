@@ -6,6 +6,7 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { useAccount } from '../context/AccountContext';
@@ -15,7 +16,13 @@ import {
   Sparkles,
   CheckCircle2,
   TrendingUp,
+  Zap,
+  ShieldCheck,
+  Banknote,
   ArrowRight,
+  Clock,
+  ArrowUpRight,
+  Landmark,
 } from 'lucide-react-native';
 import { TabType } from '../components/BottomNav';
 
@@ -24,15 +31,37 @@ interface Props {
 }
 
 export const OfframpScreen: React.FC<Props> = ({ onNavigateTab }) => {
-  const { fxRate, ausdBalance } = useAccount();
+  const { fxRate, ausdBalance, refreshAccountData } = useAccount();
 
   const [inputUsd, setInputUsd] = useState<string>('250');
   const [cashoutVisible, setCashoutVisible] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const numUsd = parseFloat(inputUsd) || 0;
-  const numInr = numUsd * fxRate;
-  const feeInr = numInr * 0.005;
-  const finalInr = Math.max(0, numInr - feeInr);
+  const grossInr = numUsd * fxRate;
+  const feeInr = grossInr * 0.005; // 0.5% gateway fee
+  const tdsInr = grossInr * 0.01;  // 1% TDS under Section 194S
+  const netInr = Math.max(0, grossInr - feeInr - tdsInr);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await refreshAccountData();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleSelectQuick = (amount: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setInputUsd(amount.toString());
+  };
+
+  const handleSelectMax = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setInputUsd(Math.floor(ausdBalance).toString());
+  };
 
   const handleLaunchModal = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -44,6 +73,14 @@ export const OfframpScreen: React.FC<Props> = ({ onNavigateTab }) => {
       style={styles.pageContainer}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          tintColor={Colors.mint}
+          colors={[Colors.mint]}
+        />
+      }
     >
       {/* 1. PORTAL HERO */}
       <View style={styles.portalHero}>
@@ -80,7 +117,13 @@ export const OfframpScreen: React.FC<Props> = ({ onNavigateTab }) => {
       {/* 2. LIVE CURRENCY CONVERTER CARD */}
       <View style={styles.portalCard}>
         <View style={styles.portalCardHeader}>
-          <Text style={styles.portalLabel}>INSTANT INR CASHOUT CALCULATOR</Text>
+          <View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Banknote size={15} color={Colors.mint} />
+              <Text style={styles.portalLabel}>INSTANT INR CASHOUT CALCULATOR</Text>
+            </View>
+            <Text style={styles.subtext}>Real-time live quotation</Text>
+          </View>
           <View style={styles.ratePill}>
             <TrendingUp size={11} color={Colors.mint} />
             <Text style={styles.ratePillText}>1 USD = ₹{fxRate.toFixed(2)}</Text>
@@ -89,7 +132,15 @@ export const OfframpScreen: React.FC<Props> = ({ onNavigateTab }) => {
 
         {/* Input */}
         <View style={styles.inputGroup}>
-          <Text style={styles.fieldLabel}>YOU SELL (AUSD)</Text>
+          <View style={styles.inputLabelRow}>
+            <Text style={styles.fieldLabel}>YOU SELL (AUSD / USDC)</Text>
+            <TouchableOpacity onPress={handleSelectMax} activeOpacity={0.7}>
+              <Text style={styles.availableBalanceText}>
+                Available: {ausdBalance.toFixed(2)} AUSD
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.amountWrap}>
             <TextInput
               style={styles.amountInput}
@@ -101,20 +152,60 @@ export const OfframpScreen: React.FC<Props> = ({ onNavigateTab }) => {
             />
             <Text style={styles.amountSuffix}>AUSD</Text>
           </View>
-        </View>
 
-        {/* Output */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.fieldLabel}>YOU RECEIVE (ESTIMATED IN BANK)</Text>
-          <View style={styles.outputWrap}>
-            <Text style={styles.outputNumber}>
-              ₹{finalInr.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-            </Text>
-            <Text style={[styles.amountSuffix, { color: Colors.mintBright }]}>INR</Text>
+          {/* Quick preset chips */}
+          <View style={styles.chipRow}>
+            {[50, 100, 250, 500, 1000].map((amt) => {
+              const active = inputUsd === amt.toString();
+              return (
+                <TouchableOpacity
+                  key={amt}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => handleSelectQuick(amt)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    ${amt}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              style={[styles.chip, styles.chipMax]}
+              onPress={handleSelectMax}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.chipText, styles.chipMaxText]}>MAX</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Specs */}
+        {/* Breakdown details */}
+        <View style={styles.breakdownCard}>
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownKey}>Gross Conversion</Text>
+            <Text style={styles.breakdownVal}>
+              ₹{grossInr.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+            </Text>
+          </View>
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownKey}>Gateway Fee (0.5%)</Text>
+            <Text style={styles.breakdownValMuted}>-₹{feeInr.toFixed(2)}</Text>
+          </View>
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownKey}>TDS Compliance (1% Sec 194S)</Text>
+            <Text style={styles.breakdownValMuted}>-₹{tdsInr.toFixed(2)}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.netRow}>
+            <Text style={styles.netLabel}>Net Bank Deposit:</Text>
+            <Text style={styles.netVal}>
+              ₹{netInr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Text>
+          </View>
+        </View>
+
+        {/* Specs Row */}
         <View style={styles.specsRow}>
           <View>
             <Text style={styles.specSub}>PLATFORM FEE</Text>
@@ -135,12 +226,71 @@ export const OfframpScreen: React.FC<Props> = ({ onNavigateTab }) => {
           onPress={handleLaunchModal}
           activeOpacity={0.8}
         >
-          <Text style={styles.actionBtnText}>Launch Instant Cashout Modal</Text>
+          <Zap size={15} color={Colors.night} />
+          <Text style={styles.actionBtnText}>
+            Settle ₹{netInr.toFixed(0)} into Bank Account
+          </Text>
         </TouchableOpacity>
+
+        <View style={styles.securityNote}>
+          <ShieldCheck size={13} color={Colors.mintBright} />
+          <Text style={styles.securityNoteText}>
+            Dispatched via IMPS with automatic UTR reference number
+          </Text>
+        </View>
       </View>
 
-      {/* 3. COMPLIANCE & TRUST */}
-      <View style={[styles.portalCard, { marginTop: 24 }]}>
+      {/* 3. TRADITIONAL WIRE VS NADRUPEE COMPARISON */}
+      <View style={[styles.portalCard, { marginTop: 20 }]}>
+        <View style={styles.portalCardHeader}>
+          <View>
+            <Text style={styles.sectionH2Em}>Traditional Wire vs <Text style={styles.sectionH2White}>NadRupee</Text></Text>
+            <Text style={styles.subtext}>Why freelancers switch to instant settlement</Text>
+          </View>
+        </View>
+
+        <View style={styles.compareGrid}>
+          {/* Legacy Rail */}
+          <View style={styles.compareColLegacy}>
+            <Text style={styles.compareColHeaderLegacy}>Traditional SWIFT / Bank</Text>
+            <View style={styles.compareItem}>
+              <Clock size={12} color="#f87171" />
+              <Text style={styles.compareItemText}>3 to 5 business days wait</Text>
+            </View>
+            <View style={styles.compareItem}>
+              <Clock size={12} color="#f87171" />
+              <Text style={styles.compareItemText}>4% – 7% hidden FX margin</Text>
+            </View>
+            <View style={styles.compareItem}>
+              <Clock size={12} color="#f87171" />
+              <Text style={styles.compareItemText}>$25 – $45 intermediary fees</Text>
+            </View>
+          </View>
+
+          {/* NadRupee Rail */}
+          <View style={styles.compareColNad}>
+            <View style={styles.compareNadTag}>
+              <Text style={styles.compareNadTagText}>RECOMMENDED</Text>
+            </View>
+            <Text style={styles.compareColHeaderNad}>NadRupee Onmeta Rail</Text>
+            <View style={styles.compareItem}>
+              <CheckCircle2 size={12} color={Colors.mintBright} />
+              <Text style={styles.compareItemTextNad}>&lt;60s direct IMPS / UPI</Text>
+            </View>
+            <View style={styles.compareItem}>
+              <CheckCircle2 size={12} color={Colors.mintBright} />
+              <Text style={styles.compareItemTextNad}>Flat 0.5% transparent fee</Text>
+            </View>
+            <View style={styles.compareItem}>
+              <CheckCircle2 size={12} color={Colors.mintBright} />
+              <Text style={styles.compareItemTextNad}>Automated Form 16 / TDS</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* 4. COMPLIANCE & TRUST */}
+      <View style={[styles.portalCard, { marginTop: 20 }]}>
         <View style={styles.portalCardHeader}>
           <Text style={styles.sectionH2Em}>
             Compliant & Regulated <Text style={styles.sectionH2White}>Infrastructure</Text>
@@ -149,7 +299,7 @@ export const OfframpScreen: React.FC<Props> = ({ onNavigateTab }) => {
 
         <View style={styles.featuresList}>
           <View style={styles.featureItem}>
-            <CheckCircle2 size={16} color={Colors.mint} />
+            <Landmark size={16} color={Colors.mint} />
             <View style={{ flex: 1 }}>
               <Text style={styles.featureTitle}>Instant IMPS & UPI Bank Transfers</Text>
               <Text style={styles.featureDesc}>
@@ -159,7 +309,7 @@ export const OfframpScreen: React.FC<Props> = ({ onNavigateTab }) => {
           </View>
 
           <View style={styles.featureItem}>
-            <CheckCircle2 size={16} color={Colors.mint} />
+            <ShieldCheck size={16} color={Colors.mint} />
             <View style={{ flex: 1 }}>
               <Text style={styles.featureTitle}>100% RBI & FIU-IND Compliant</Text>
               <Text style={styles.featureDesc}>
@@ -196,18 +346,18 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.night,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 60,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 110,
   },
   portalHero: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   switchBtn: {
     paddingHorizontal: 12,
@@ -239,28 +389,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: 'rgba(248, 250, 252, 0.75)',
     letterSpacing: 0.5,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   eyebrowSub: {
     color: Colors.mutedForeground,
     marginLeft: 4,
   },
   portalH1Em: {
-    fontSize: 30,
-    lineHeight: 34,
-    fontWeight: '500',
+    fontSize: 32,
+    lineHeight: 36,
+    fontWeight: '400',
     color: 'rgba(248, 250, 252, 0.5)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    letterSpacing: -0.6,
   },
   portalH1White: {
-    fontSize: 30,
-    lineHeight: 34,
+    fontSize: 32,
+    lineHeight: 36,
     fontWeight: '500',
     color: Colors.paper,
-    marginBottom: 10,
+    marginBottom: 8,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    letterSpacing: -0.6,
   },
   portalDesc: {
     fontSize: 13,
     color: 'rgba(248, 250, 252, 0.65)',
     lineHeight: 18,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   portalCard: {
     backgroundColor: Colors.nightCard,
@@ -268,6 +424,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.nightCardBorder,
     borderRadius: 16,
     padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 6,
   },
   portalCardHeader: {
     flexDirection: 'row',
@@ -283,6 +444,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.mutedForeground,
     letterSpacing: 0.5,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  subtext: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    marginTop: 2,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   ratePill: {
     flexDirection: 'row',
@@ -290,23 +458,38 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: 'rgba(56, 217, 169, 0.12)',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
   },
   ratePillText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.mintBright,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   inputGroup: {
     marginBottom: 14,
+  },
+  inputLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   fieldLabel: {
     fontSize: 10,
     fontWeight: '700',
     color: Colors.mutedForeground,
     letterSpacing: 0.5,
-    marginBottom: 6,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  availableBalanceText: {
+    fontSize: 11,
+    color: Colors.mintBright,
+    fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   amountWrap: {
     flexDirection: 'row',
@@ -319,31 +502,105 @@ const styles = StyleSheet.create({
   },
   amountInput: {
     flex: 1,
-    height: 44,
+    height: 46,
     color: Colors.paper,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   amountSuffix: {
     color: Colors.mint,
     fontSize: 12,
     fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
-  outputWrap: {
+  chipRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  chip: {
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 44,
   },
-  outputNumber: {
-    fontSize: 16,
+  chipActive: {
+    backgroundColor: 'rgba(56, 217, 169, 0.15)',
+    borderColor: 'rgba(56, 217, 169, 0.4)',
+  },
+  chipMax: {
+    backgroundColor: 'rgba(56, 217, 169, 0.1)',
+    borderColor: 'rgba(56, 217, 169, 0.3)',
+  },
+  chipText: {
+    color: Colors.paperDim,
+    fontSize: 11,
     fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  chipTextActive: {
+    color: Colors.mintBright,
+    fontWeight: '700',
+  },
+  chipMaxText: {
+    color: Colors.mintBright,
+    fontWeight: '700',
+  },
+  breakdownCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    gap: 8,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  breakdownKey: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  breakdownVal: {
+    fontSize: 12,
     color: Colors.paper,
+    fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  breakdownValMuted: {
+    fontSize: 11,
+    color: 'rgba(248, 250, 252, 0.6)',
+    fontFamily: 'monospace',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginVertical: 4,
+  },
+  netRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  netLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.mintBright,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  netVal: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   specsRow: {
     flexDirection: 'row',
@@ -351,42 +608,130 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 10,
     padding: 12,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   specSub: {
     fontSize: 9,
     fontWeight: '700',
     color: Colors.mutedForeground,
     letterSpacing: 0.5,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   specVal: {
     fontSize: 12,
     fontWeight: '600',
     color: Colors.paper,
     marginTop: 2,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   actionBtn: {
-    height: 38,
+    height: 44,
     borderRadius: 22,
     backgroundColor: Colors.paper,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     paddingHorizontal: 20,
+    shadowColor: Colors.paper,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   actionBtnText: {
     color: Colors.night,
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  securityNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+  },
+  securityNoteText: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  compareGrid: {
+    gap: 12,
+  },
+  compareColLegacy: {
+    backgroundColor: 'rgba(239, 68, 68, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.15)',
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+  },
+  compareColHeaderLegacy: {
     fontSize: 12,
     fontWeight: '700',
+    color: '#f87171',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    marginBottom: 2,
+  },
+  compareColNad: {
+    backgroundColor: 'rgba(56, 217, 169, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+    position: 'relative',
+  },
+  compareNadTag: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(56, 217, 169, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  compareNadTagText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: Colors.mintBright,
+    letterSpacing: 0.5,
+  },
+  compareColHeaderNad: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.mintBright,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    marginBottom: 2,
+  },
+  compareItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  compareItemText: {
+    fontSize: 11,
+    color: 'rgba(248, 250, 252, 0.65)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  compareItemTextNad: {
+    fontSize: 11,
+    color: Colors.paper,
+    fontWeight: '500',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   sectionH2Em: {
     fontSize: 17,
     fontWeight: '500',
     color: 'rgba(248, 250, 252, 0.5)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   sectionH2White: {
     fontSize: 17,
     fontWeight: '500',
     color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   featuresList: {
     gap: 14,
@@ -402,10 +747,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.paper,
     marginBottom: 2,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   featureDesc: {
     fontSize: 11,
     color: Colors.mutedForeground,
     lineHeight: 16,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
 });

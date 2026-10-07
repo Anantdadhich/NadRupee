@@ -29,11 +29,13 @@ interface Props {
   defaultAmount?: number;
 }
 
-export const CashoutModal: React.FC<Props> = ({ visible, onClose, defaultAmount = 100 }) => {
+export const CashoutModal: React.FC<Props> = ({ visible, onClose, defaultAmount = 0 }) => {
   const { ausdBalance, fxRate, processCashout } = useAccount();
 
-  const [amountStr, setAmountStr] = useState<string>(defaultAmount.toString());
-  const [upiId, setUpiId] = useState<string>('arjun@axl');
+  const [amountStr, setAmountStr] = useState<string>(
+    defaultAmount > 0 ? defaultAmount.toString() : ''
+  );
+  const [upiId, setUpiId] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedUtr, setCopiedUtr] = useState<boolean>(false);
@@ -48,7 +50,8 @@ export const CashoutModal: React.FC<Props> = ({ visible, onClose, defaultAmount 
   const amountUsd = parseFloat(amountStr) || 0;
   const grossInr = amountUsd * fxRate;
   const feeInr = grossInr * 0.005; // 0.5% flat fee
-  const netInr = Math.max(0, grossInr - feeInr);
+  const tdsInr = grossInr * 0.01;  // 1% TDS Section 194S
+  const netInr = Math.max(0, grossInr - feeInr - tdsInr);
 
   const handleSelectQuick = (val: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -257,6 +260,30 @@ export const CashoutModal: React.FC<Props> = ({ visible, onClose, defaultAmount 
                     placeholderTextColor={Colors.paperDim}
                     autoCapitalize="none"
                   />
+                  <View style={styles.chipRow}>
+                    {['arjun@axl', 'priya@okhdfcbank', 'rohit@paytm'].map((preset) => (
+                      <TouchableOpacity
+                        key={preset}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setUpiId(preset);
+                        }}
+                        style={[
+                          styles.chip,
+                          upiId === preset && styles.chipActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            upiId === preset && styles.chipTextActive,
+                          ]}
+                        >
+                          {preset}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                   <Text style={styles.inputHint}>
                     Instant IMPS bank credit verified under RBI & FIU-IND compliance.
                   </Text>
@@ -271,6 +298,10 @@ export const CashoutModal: React.FC<Props> = ({ visible, onClose, defaultAmount 
                   <View style={styles.calcRow}>
                     <Text style={styles.calcLabel}>Off-ramp Fee (0.5%)</Text>
                     <Text style={styles.calcVal}>-₹{feeInr.toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.calcRow}>
+                    <Text style={styles.calcLabel}>TDS Compliance (1% Sec 194S)</Text>
+                    <Text style={styles.calcVal}>-₹{tdsInr.toFixed(2)}</Text>
                   </View>
                   <View style={styles.calcRow}>
                     <Text style={styles.calcLabel}>Gas Network Fee</Text>

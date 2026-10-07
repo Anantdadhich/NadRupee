@@ -35,17 +35,19 @@ interface Props {
 export const SendAusdModal: React.FC<Props> = ({
   visible,
   onClose,
-  defaultRecipient = '@priya.dev',
-  defaultAmount = 50,
+  defaultRecipient = '',
+  defaultAmount = 0,
 }) => {
   const { ausdBalance, fxRate, sendAusd } = useAccount();
 
   const [recipientInput, setRecipientInput] = useState<string>(defaultRecipient);
   const [resolvedAddress, setResolvedAddress] = useState<string>(
-    KNOWN_FREELANCERS[defaultRecipient] || ''
+    defaultRecipient ? (KNOWN_FREELANCERS[defaultRecipient] || '') : ''
   );
-  const [amountStr, setAmountStr] = useState<string>(defaultAmount.toString());
-  const [memo, setMemo] = useState<string>('Payment for Milestone Deliverable');
+  const [amountStr, setAmountStr] = useState<string>(
+    defaultAmount > 0 ? defaultAmount.toString() : ''
+  );
+  const [memo, setMemo] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedTx, setCopiedTx] = useState<boolean>(false);

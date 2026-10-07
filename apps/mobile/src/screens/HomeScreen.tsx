@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { BrandMark } from '../components/BrandMark';
@@ -24,11 +25,30 @@ interface Props {
 }
 
 export const HomeScreen: React.FC<Props> = ({ onNavigateTab }) => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTimeout(() => {
+      setIsRefreshing(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }, 600);
+  };
+
   return (
     <ScrollView
       style={styles.pageContainer}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          tintColor={Colors.mint}
+          colors={[Colors.mint]}
+        />
+      }
     >
       {/* 1. HERO SECTION (Matching web .hero & .hero-content) */}
       <View style={styles.heroSection}>
@@ -355,8 +375,109 @@ export const HomeScreen: React.FC<Props> = ({ onNavigateTab }) => {
         <Text style={styles.statementH2White}>
           payments that work the way freelancers actually need them to
         </Text>
+        <Text style={styles.statementDesc}>
+          A payments platform for Indian freelancers working with global clients — certainty before you start, instant payout after.
+        </Text>
+        <View style={styles.statementBtnRow}>
+          <TouchableOpacity
+            style={styles.actionBtnSmall}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onNavigateTab('freelancer');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.actionBtnText}>Get Started</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtnDarkSmall}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onNavigateTab('client');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.actionBtnDarkText}>Switch to Client</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* 7. CLOSING BANNER */}
+      <View style={styles.closingBanner}>
+        <View style={styles.darkEyebrow}>
+          <Sparkles size={11} color={Colors.mint} />
+          <Text style={styles.darkEyebrowText}>EMPOWER YOUR WORK</Text>
+        </View>
+        <Text style={styles.closingH2White}>Get paid without the wait</Text>
+        <Text style={styles.closingDesc}>
+          Stop chasing invoices. Start getting paid the moment your work is funded.
+        </Text>
+        <View style={styles.statementBtnRow}>
+          <TouchableOpacity
+            style={styles.actionBtnSmall}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onNavigateTab('freelancer');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.actionBtnText}>Launch Freelancer</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionBtnDarkSmall}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onNavigateTab('offramp');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.actionBtnDarkText}>Instant INR Offramp</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* 8. TRUSTED TALENT CATEGORIES */}
+      <View style={styles.trustedSection}>
+        <Text style={styles.trustedHeading}>Built for independent talent</Text>
+        <Text style={styles.trustedSub}>working with global clients</Text>
+        <View style={styles.talentPillsWrap}>
+          {['Developers', 'Designers', 'Writers', 'Consultants', 'Remote contractors'].map((role) => (
+            <View key={role} style={styles.talentPill}>
+              <Text style={styles.talentPillText}>{role}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* 9. MOBILE FOOTER */}
+      <View style={styles.mobileFooter}>
+        <View style={styles.footerBrandRow}>
+          <BrandMark />
+        </View>
+        <Text style={styles.footerTagline}>
+          Instant, escrow-backed payments for Indian freelancers — built on Monad Testnet.
+        </Text>
+        <View style={styles.footerLinksRow}>
+          <TouchableOpacity onPress={() => onNavigateTab('freelancer')}>
+            <Text style={styles.footerLink}>Freelancers</Text>
+          </TouchableOpacity>
+          <Text style={styles.footerDot}>·</Text>
+          <TouchableOpacity onPress={() => onNavigateTab('client')}>
+            <Text style={styles.footerLink}>Clients</Text>
+          </TouchableOpacity>
+          <Text style={styles.footerDot}>·</Text>
+          <TouchableOpacity onPress={() => onNavigateTab('offramp')}>
+            <Text style={styles.footerLink}>INR Off-ramp</Text>
+          </TouchableOpacity>
+          <Text style={styles.footerDot}>·</Text>
+          <TouchableOpacity onPress={() => onNavigateTab('protocol')}>
+            <Text style={styles.footerLink}>Protocol Lab</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.footerCopy}>© 2026 NadRupee · Monad Testnet</Text>
       </View>
     </ScrollView>
+
   );
 };
 
@@ -366,7 +487,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.night,
   },
   content: {
-    paddingBottom: 60,
+    paddingBottom: 110,
   },
   // 1. Hero
   heroSection: {
@@ -952,4 +1073,161 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
+  statementDesc: {
+    fontSize: 12,
+    color: 'rgba(248, 250, 252, 0.65)',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginVertical: 4,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  statementBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  actionBtnSmall: {
+    height: 38,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: Colors.paper,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnDarkSmall: {
+    height: 38,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionBtnDarkText: {
+    color: Colors.paper,
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+
+  // 7. Closing
+  closingBanner: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    backgroundColor: 'rgba(56, 217, 169, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.2)',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    textAlign: 'center',
+  },
+  closingH2White: {
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: '600',
+    color: Colors.paper,
+    textAlign: 'center',
+    marginBottom: 6,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  closingDesc: {
+    fontSize: 12,
+    color: 'rgba(248, 250, 252, 0.65)',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 8,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+
+  // 8. Trusted
+  trustedSection: {
+    marginTop: 28,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  trustedHeading: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.paper,
+    textAlign: 'center',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  trustedSub: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    textAlign: 'center',
+    marginTop: 2,
+    marginBottom: 12,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  talentPillsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  talentPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  talentPillText: {
+    fontSize: 11,
+    color: 'rgba(248, 250, 252, 0.8)',
+    fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+
+  // 9. Footer
+  mobileFooter: {
+    marginTop: 36,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    gap: 12,
+  },
+  footerBrandRow: {
+    alignItems: 'center',
+  },
+  footerTagline: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    textAlign: 'center',
+    lineHeight: 16,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    maxWidth: 280,
+  },
+  footerLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  footerLink: {
+    fontSize: 11,
+    color: Colors.mint,
+    fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  footerDot: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+  },
+  footerCopy: {
+    fontSize: 10,
+    color: 'rgba(248, 250, 252, 0.35)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    marginTop: 4,
+  },
 });
+

@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { useAccount } from '../context/AccountContext';
@@ -26,12 +27,13 @@ interface Props {
 }
 
 export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
-  const { jobs, createJob, releaseRemainder, fxRate } = useAccount();
+  const { jobs, createJob, releaseRemainder, fxRate, refreshAccountData } = useAccount();
 
   const [freelancerInput, setFreelancerInput] = useState<string>('@arjun.monad');
   const [jobTitle, setJobTitle] = useState<string>('Smart Contract Security Audit & Integration');
   const [amountStr, setAmountStr] = useState<string>('1000');
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [actionJobId, setActionJobId] = useState<string | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
@@ -41,6 +43,17 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
 
   const resolvedAddress =
     KNOWN_FREELANCERS[freelancerInput.trim().toLowerCase()] || freelancerInput.trim();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await refreshAccountData();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
 
   const handleCreateJob = async () => {
     if (amountUsd <= 0 || !jobTitle.trim() || !freelancerInput.trim()) {
@@ -86,6 +99,14 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
       style={styles.pageContainer}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          tintColor={Colors.mint}
+          colors={[Colors.mint]}
+        />
+      }
     >
       {/* 1. PORTAL HERO */}
       <View style={styles.portalHero}>
@@ -149,6 +170,26 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
               ✓ {KNOWN_FREELANCERS[freelancerInput.trim().toLowerCase()].slice(0, 16)}...
             </Text>
           )}
+          <View style={styles.chipRow}>
+            {Object.keys(KNOWN_FREELANCERS).map((handle) => {
+              const active = freelancerInput.trim().toLowerCase() === handle.toLowerCase();
+              return (
+                <TouchableOpacity
+                  key={handle}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setFreelancerInput(handle);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    {handle}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {/* Deliverable Title */}
@@ -176,6 +217,26 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
               placeholderTextColor="rgba(248, 250, 252, 0.3)"
             />
             <Text style={styles.amountSuffix}>AUSD</Text>
+          </View>
+          <View style={styles.chipRow}>
+            {['250', '500', '1000', '2500'].map((amt) => {
+              const active = amountStr === amt;
+              return (
+                <TouchableOpacity
+                  key={amt}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setAmountStr(amt);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                    ${amt}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -313,7 +374,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 60,
+    paddingBottom: 110,
   },
   portalHero: {
     marginBottom: 20,
@@ -653,5 +714,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  chipActive: {
+    backgroundColor: 'rgba(56, 217, 169, 0.15)',
+    borderColor: 'rgba(56, 217, 169, 0.4)',
+  },
+  chipText: {
+    color: Colors.paperDim,
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  chipTextActive: {
+    color: Colors.mintBright,
+    fontWeight: '700',
   },
 });

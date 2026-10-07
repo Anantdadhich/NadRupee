@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import {
@@ -64,6 +65,14 @@ export const ProtocolScreen: React.FC = () => {
       style={styles.pageContainer}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={fetchHealth}
+          tintColor={Colors.mint}
+          colors={[Colors.mint]}
+        />
+      }
     >
       {/* 1. PORTAL HERO */}
       <View style={styles.portalHero}>
@@ -263,9 +272,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.night,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 60,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 110,
   },
   portalHero: {
     marginBottom: 24,

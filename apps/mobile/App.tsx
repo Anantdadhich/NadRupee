@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Colors } from './src/theme/colors';
 import { AccountProvider } from './src/context/AccountContext';
 import { Header } from './src/components/Header';
-import { TabType } from './src/components/BottomNav';
+import { BottomNav, TabType } from './src/components/BottomNav';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { FreelancerScreen } from './src/screens/FreelancerScreen';
 import { ClientScreen } from './src/screens/ClientScreen';
@@ -38,9 +38,11 @@ function MainApp() {
         {activeTab === 'offramp' && <OfframpScreen onNavigateTab={setActiveTab} />}
         {activeTab === 'protocol' && <ProtocolScreen />}
       </View>
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </View>
   );
 }
+
 
 export default function App() {
   return (

@@ -35,8 +35,14 @@ export const BottomNav: React.FC<Props> = ({ activeTab, onTabChange }) => {
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-      <View style={styles.navRow}>
+    <View
+      pointerEvents="box-none"
+      style={[
+        styles.floatingWrap,
+        { bottom: Math.max(insets.bottom, 12) + 2 },
+      ]}
+    >
+      <View style={styles.capsule}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.key;
           const Icon = tab.icon;
@@ -44,16 +50,23 @@ export const BottomNav: React.FC<Props> = ({ activeTab, onTabChange }) => {
             <TouchableOpacity
               key={tab.key}
               onPress={() => handlePress(tab.key)}
-              style={styles.tabButton}
+              style={[styles.tabButton, isActive && styles.tabButtonActive]}
               activeOpacity={0.7}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={tab.label}
             >
-              <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
-                <Icon
-                  size={19}
-                  color={isActive ? Colors.mint : Colors.paperDim}
-                />
-              </View>
-              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+              <Icon
+                size={17}
+                color={isActive ? Colors.mintBright : 'rgba(248, 250, 252, 0.55)'}
+              />
+              <Text
+                style={[
+                  styles.tabLabel,
+                  isActive && styles.tabLabelActive,
+                ]}
+                numberOfLines={1}
+              >
                 {tab.label}
               </Text>
             </TouchableOpacity>
@@ -65,42 +78,55 @@ export const BottomNav: React.FC<Props> = ({ activeTab, onTabChange }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: Colors.night,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
-    paddingTop: 8,
-  },
-  navRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  floatingWrap: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
     alignItems: 'center',
-    paddingHorizontal: 8,
+    zIndex: 99,
+  },
+  capsule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: 'rgba(16, 22, 20, 0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 36,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    elevation: 16,
   },
   tabButton: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    minWidth: 58,
+    paddingVertical: 7,
+    paddingHorizontal: 2,
+    borderRadius: 24,
+    gap: 3,
   },
-  iconWrap: {
-    width: 32,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 14,
-  },
-  iconWrapActive: {
-    backgroundColor: 'rgba(56, 217, 169, 0.12)',
+  tabButtonActive: {
+    backgroundColor: 'rgba(56, 217, 169, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.28)',
   },
   tabLabel: {
     fontSize: 10,
     fontWeight: '500',
-    color: Colors.mutedForeground,
-    marginTop: 2,
+    color: 'rgba(248, 250, 252, 0.55)',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    letterSpacing: -0.2,
   },
   tabLabelActive: {
-    color: Colors.paper,
-    fontWeight: '600',
+    color: Colors.mintBright,
+    fontWeight: '700',
   },
 });
+

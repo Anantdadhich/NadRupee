@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { useAccount } from '../context/AccountContext';
@@ -84,6 +85,14 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
       style={styles.pageContainer}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          tintColor={Colors.mint}
+          colors={[Colors.mint]}
+        />
+      }
     >
       {/* 1. PORTAL HERO (Matching web .portal-hero) */}
       <View style={styles.portalHero}>
@@ -444,7 +453,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 60,
+    paddingBottom: 110,
   },
   portalHero: {
     marginBottom: 20,
