@@ -19,21 +19,25 @@ import {
   Activity,
   IndianRupee,
 } from 'lucide-react-native';
+import { useAccount } from '../context/AccountContext';
 
 interface Props {
   onNavigateTab: (tab: 'freelancer' | 'client' | 'offramp' | 'protocol') => void;
 }
 
 export const HomeScreen: React.FC<Props> = ({ onNavigateTab }) => {
+  const { refreshAccountData } = useAccount();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setTimeout(() => {
-      setIsRefreshing(false);
+    try {
+      await refreshAccountData();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }, 600);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (

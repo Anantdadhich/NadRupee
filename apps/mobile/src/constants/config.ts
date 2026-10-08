@@ -25,6 +25,20 @@ export const RELAYER_ADDRESS = getEnv(
   '0x47Cc14B5D120E404d6fddf86C136B392529d1123'
 );
 
+// Official Agora Monad Testnet Settlement & Liquidity Contracts
+export const INSTANT_SETTLEMENT_FACTORY_ADDRESS = getEnv(
+  'EXPO_PUBLIC_SETTLEMENT_FACTORY_ADDRESS',
+  '0x8468587Af422ad440F58a57E955eCA6A970b5375'
+);
+export const CTK_AUSD_PAIR_ADDRESS = getEnv(
+  'EXPO_PUBLIC_CTK_AUSD_PAIR_ADDRESS',
+  '0x1Aa8958Aa34cEC8096EF4381cb335effe977b0ae'
+);
+export const WHITELISTER_CONTRACT_ADDRESS = getEnv(
+  'EXPO_PUBLIC_WHITELISTER_ADDRESS',
+  '0x7c10F56d6f04a51376393a1C3670e966863F6BD5'
+);
+
 // 1-Click Pre-Configured Testnet Passkey EOA (Deterministic for testing on localhost only)
 export const TESTNET_PASSKEY_ADDRESS = '0xCf098B151d867CE2874FC13CAED17b81E1f73688';
 

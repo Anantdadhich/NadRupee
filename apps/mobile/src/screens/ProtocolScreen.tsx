@@ -7,16 +7,25 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import {
   ESCROW_CONTRACT_ADDRESS,
   AUSD_CONTRACT_ADDRESS,
   RELAYER_ADDRESS,
+  INSTANT_SETTLEMENT_FACTORY_ADDRESS,
+  CTK_AUSD_PAIR_ADDRESS,
+  WHITELISTER_CONTRACT_ADDRESS,
   MONAD_CHAIN_ID,
   MONAD_RPC_URL,
 } from '../constants/config';
-import { getRelayerHealth, getMonadBlockNumber, RelayerStatus } from '../services/monadRpc';
+import {
+  getRelayerHealth,
+  getMonadBlockNumber,
+  getMonadAddressExplorerUrl,
+  RelayerStatus,
+} from '../services/monadRpc';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import {
@@ -58,6 +67,12 @@ export const ProtocolScreen: React.FC = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleOpenExplorer = (addr: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const url = getMonadAddressExplorerUrl(addr);
+    Linking.openURL(url).catch((e) => console.warn('Could not open Monad explorer:', e));
   };
 
   return (
@@ -118,20 +133,29 @@ export const ProtocolScreen: React.FC = () => {
 
         <View style={styles.metricRow}>
           <Text style={styles.metricKey}>Relayer Address:</Text>
-          <TouchableOpacity
-            onPress={() => handleCopy('relayer', RELAYER_ADDRESS)}
-            style={styles.codeRow}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.codeText}>
-              {RELAYER_ADDRESS.slice(0, 8)}...{RELAYER_ADDRESS.slice(-6)}
-            </Text>
-            {copiedKey === 'relayer' ? (
-              <Check size={11} color={Colors.mint} />
-            ) : (
-              <Copy size={11} color={Colors.paperDim} />
-            )}
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <TouchableOpacity
+              onPress={() => handleCopy('relayer', RELAYER_ADDRESS)}
+              style={styles.codeRow}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.codeText}>
+                {RELAYER_ADDRESS.slice(0, 8)}...{RELAYER_ADDRESS.slice(-6)}
+              </Text>
+              {copiedKey === 'relayer' ? (
+                <Check size={11} color={Colors.mint} />
+              ) : (
+                <Copy size={11} color={Colors.paperDim} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleOpenExplorer(RELAYER_ADDRESS)}
+              style={styles.iconActionBtn}
+              activeOpacity={0.7}
+            >
+              <ExternalLink size={12} color={Colors.mint} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.metricRow}>
@@ -159,7 +183,6 @@ export const ProtocolScreen: React.FC = () => {
         </View>
       </View>
 
-
       {/* 3. VERIFIED CONTRACTS */}
       <View style={[styles.portalCard, { marginTop: 24 }]}>
         <View style={styles.portalCardHeader}>
@@ -173,18 +196,29 @@ export const ProtocolScreen: React.FC = () => {
               <Text style={styles.contractTitle}>Escrow Contract (x402)</Text>
               <Text style={styles.contractChain}>Chain ID: {MONAD_CHAIN_ID}</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => handleCopy('escrow', ESCROW_CONTRACT_ADDRESS)}
-              style={styles.codeFullRow}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.codeFullText}>{ESCROW_CONTRACT_ADDRESS}</Text>
-              {copiedKey === 'escrow' ? (
-                <Check size={12} color={Colors.mint} />
-              ) : (
-                <Copy size={12} color={Colors.paperDim} />
-              )}
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity
+                onPress={() => handleCopy('escrow', ESCROW_CONTRACT_ADDRESS)}
+                style={[styles.codeFullRow, { flex: 1 }]}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.codeFullText} numberOfLines={1}>
+                  {ESCROW_CONTRACT_ADDRESS}
+                </Text>
+                {copiedKey === 'escrow' ? (
+                  <Check size={12} color={Colors.mint} />
+                ) : (
+                  <Copy size={12} color={Colors.paperDim} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleOpenExplorer(ESCROW_CONTRACT_ADDRESS)}
+                style={styles.iconActionBtn}
+                activeOpacity={0.7}
+              >
+                <ExternalLink size={12} color={Colors.mint} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.divider} />
@@ -195,18 +229,128 @@ export const ProtocolScreen: React.FC = () => {
               <Text style={styles.contractTitle}>Agora Dollar (AUSD)</Text>
               <Text style={styles.contractChain}>Decimals: 6</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => handleCopy('ausd', AUSD_CONTRACT_ADDRESS)}
-              style={styles.codeFullRow}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.codeFullText}>{AUSD_CONTRACT_ADDRESS}</Text>
-              {copiedKey === 'ausd' ? (
-                <Check size={12} color={Colors.mint} />
-              ) : (
-                <Copy size={12} color={Colors.paperDim} />
-              )}
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity
+                onPress={() => handleCopy('ausd', AUSD_CONTRACT_ADDRESS)}
+                style={[styles.codeFullRow, { flex: 1 }]}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.codeFullText} numberOfLines={1}>
+                  {AUSD_CONTRACT_ADDRESS}
+                </Text>
+                {copiedKey === 'ausd' ? (
+                  <Check size={12} color={Colors.mint} />
+                ) : (
+                  <Copy size={12} color={Colors.paperDim} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleOpenExplorer(AUSD_CONTRACT_ADDRESS)}
+                style={styles.iconActionBtn}
+                activeOpacity={0.7}
+              >
+                <ExternalLink size={12} color={Colors.mint} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Instant Settlement Factory */}
+          <View style={styles.contractItem}>
+            <View style={styles.contractHeader}>
+              <Text style={styles.contractTitle}>Instant Settlement Factory</Text>
+              <Text style={styles.contractChain}>Agora / Monad</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity
+                onPress={() => handleCopy('factory', INSTANT_SETTLEMENT_FACTORY_ADDRESS)}
+                style={[styles.codeFullRow, { flex: 1 }]}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.codeFullText} numberOfLines={1}>
+                  {INSTANT_SETTLEMENT_FACTORY_ADDRESS}
+                </Text>
+                {copiedKey === 'factory' ? (
+                  <Check size={12} color={Colors.mint} />
+                ) : (
+                  <Copy size={12} color={Colors.paperDim} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleOpenExplorer(INSTANT_SETTLEMENT_FACTORY_ADDRESS)}
+                style={styles.iconActionBtn}
+                activeOpacity={0.7}
+              >
+                <ExternalLink size={12} color={Colors.mint} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* CTK / AUSD Pair */}
+          <View style={styles.contractItem}>
+            <View style={styles.contractHeader}>
+              <Text style={styles.contractTitle}>CTK / AUSD Liquidity Pair</Text>
+              <Text style={styles.contractChain}>Pool</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity
+                onPress={() => handleCopy('pair', CTK_AUSD_PAIR_ADDRESS)}
+                style={[styles.codeFullRow, { flex: 1 }]}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.codeFullText} numberOfLines={1}>
+                  {CTK_AUSD_PAIR_ADDRESS}
+                </Text>
+                {copiedKey === 'pair' ? (
+                  <Check size={12} color={Colors.mint} />
+                ) : (
+                  <Copy size={12} color={Colors.paperDim} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleOpenExplorer(CTK_AUSD_PAIR_ADDRESS)}
+                style={styles.iconActionBtn}
+                activeOpacity={0.7}
+              >
+                <ExternalLink size={12} color={Colors.mint} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Whitelister Contract */}
+          <View style={styles.contractItem}>
+            <View style={styles.contractHeader}>
+              <Text style={styles.contractTitle}>Whitelister Contract</Text>
+              <Text style={styles.contractChain}>Access</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity
+                onPress={() => handleCopy('whitelister', WHITELISTER_CONTRACT_ADDRESS)}
+                style={[styles.codeFullRow, { flex: 1 }]}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.codeFullText} numberOfLines={1}>
+                  {WHITELISTER_CONTRACT_ADDRESS}
+                </Text>
+                {copiedKey === 'whitelister' ? (
+                  <Check size={12} color={Colors.mint} />
+                ) : (
+                  <Copy size={12} color={Colors.paperDim} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleOpenExplorer(WHITELISTER_CONTRACT_ADDRESS)}
+                style={styles.iconActionBtn}
+                activeOpacity={0.7}
+              >
+                <ExternalLink size={12} color={Colors.mint} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.divider} />
@@ -477,5 +621,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Colors.mintBright,
+  },
+  iconActionBtn: {
+    backgroundColor: 'rgba(56, 217, 169, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
+    borderRadius: 8,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

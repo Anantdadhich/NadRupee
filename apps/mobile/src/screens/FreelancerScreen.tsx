@@ -70,8 +70,11 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
       const res = await claimAdvance(jobId);
       if (res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setClaimSuccessMsg(`80% Advance claimed & deposited on Monad!`);
-        setTimeout(() => setClaimSuccessMsg(null), 4000);
+        const msg = res.txHash
+          ? `80% Advance claimed on Monad Testnet! Tx: ${res.txHash.slice(0, 10)}...`
+          : `80% Advance claimed & deposited on Monad!`;
+        setClaimSuccessMsg(msg);
+        setTimeout(() => setClaimSuccessMsg(null), 5000);
       }
     } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

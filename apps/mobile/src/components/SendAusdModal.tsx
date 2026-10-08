@@ -8,10 +8,12 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { useAccount } from '../context/AccountContext';
 import { KNOWN_FREELANCERS, MONAD_EXPLORER_URL } from '../constants/config';
+import { getMonadTxExplorerUrl } from '../services/monadRpc';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import {
@@ -139,6 +141,14 @@ export const SendAusdModal: React.FC<Props> = ({
     }
   };
 
+  const handleOpenExplorer = () => {
+    if (receipt?.txHash) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const url = getMonadTxExplorerUrl(receipt.txHash);
+      Linking.openURL(url).catch((e) => console.warn('Could not open Monad explorer:', e));
+    }
+  };
+
   const handleReset = () => {
     setReceipt(null);
     setError(null);
@@ -219,6 +229,15 @@ export const SendAusdModal: React.FC<Props> = ({
                     </Text>
                   </View>
                 </View>
+
+                <TouchableOpacity
+                  onPress={handleOpenExplorer}
+                  style={styles.explorerBtn}
+                  activeOpacity={0.8}
+                >
+                  <ExternalLink size={14} color={Colors.mint} />
+                  <Text style={styles.explorerBtnText}>View on Monad Explorer</Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={handleReset}
@@ -668,6 +687,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: 'monospace',
     color: Colors.paper,
+  },
+  explorerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(56, 217, 169, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
+    borderRadius: 14,
+    paddingVertical: 13,
+    marginBottom: 10,
+  },
+  explorerBtnText: {
+    color: Colors.mint,
+    fontSize: 13,
+    fontWeight: '700',
   },
   doneBtn: {
     backgroundColor: Colors.mint,

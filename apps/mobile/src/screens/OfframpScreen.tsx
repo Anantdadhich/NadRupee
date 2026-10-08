@@ -33,7 +33,7 @@ interface Props {
 export const OfframpScreen: React.FC<Props> = ({ onNavigateTab }) => {
   const { fxRate, ausdBalance, refreshAccountData } = useAccount();
 
-  const [inputUsd, setInputUsd] = useState<string>('250');
+  const [inputUsd, setInputUsd] = useState<string>('');
   const [cashoutVisible, setCashoutVisible] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 

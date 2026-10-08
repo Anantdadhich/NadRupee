@@ -37,6 +37,22 @@ export const AUSD_CONTRACT_ADDRESS: Address = (
   "0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC"
 ) as Address;
 
+// Official Agora Monad Testnet Settlement & Liquidity Contracts
+export const INSTANT_SETTLEMENT_FACTORY_ADDRESS: Address = (
+  process.env.NEXT_PUBLIC_SETTLEMENT_FACTORY_ADDRESS ||
+  "0x8468587Af422ad440F58a57E955eCA6A970b5375"
+) as Address;
+
+export const CTK_AUSD_PAIR_ADDRESS: Address = (
+  process.env.NEXT_PUBLIC_CTK_AUSD_PAIR_ADDRESS ||
+  "0x1Aa8958Aa34cEC8096EF4381cb335effe977b0ae"
+) as Address;
+
+export const WHITELISTER_CONTRACT_ADDRESS: Address = (
+  process.env.NEXT_PUBLIC_WHITELISTER_ADDRESS ||
+  "0x7c10F56d6f04a51376393a1C3670e966863F6BD5"
+) as Address;
+
 export const ESCROW_EIP712_DOMAIN = {
   name: "NadRupee Escrow",
   version: "1",

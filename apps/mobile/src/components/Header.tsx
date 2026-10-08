@@ -9,6 +9,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { Check, Copy, Menu, X, ArrowRight, ShieldCheck } from 'lucide-react-native';
 import { TabType } from './BottomNav';
+import { WalletModal } from './WalletModal';
 
 interface Props {
   activeTab: TabType;
@@ -27,6 +28,7 @@ export const Header: React.FC<Props> = ({ activeTab, onTabChange }) => {
   } = useAccount();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -69,7 +71,10 @@ export const Header: React.FC<Props> = ({ activeTab, onTabChange }) => {
             <View style={styles.authStatus}>
               <View style={styles.authDot} />
               <TouchableOpacity
-                onPress={handleCopy}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setWalletModalOpen(true);
+                }}
                 style={styles.addressPill}
                 activeOpacity={0.7}
               >
@@ -83,19 +88,12 @@ export const Header: React.FC<Props> = ({ activeTab, onTabChange }) => {
                 )}
               </TouchableOpacity>
             </View>
-          ) : isLocalOrTestEnvironment() ? (
-            <TouchableOpacity
-              onPress={connectTestnetPasskey}
-              disabled={isConnecting}
-              style={styles.testnetBtn}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.testnetBtnText}>⚡ Testnet Passkey</Text>
-            </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              onPress={connectBiometricPasskey}
-              disabled={isConnecting}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setWalletModalOpen(true);
+              }}
               style={styles.connectBtn}
               activeOpacity={0.7}
             >
@@ -158,33 +156,28 @@ export const Header: React.FC<Props> = ({ activeTab, onTabChange }) => {
 
           {/* Additional Auth Action inside Menu */}
           <View style={styles.menuFooter}>
-            {isConnected ? (
-              <TouchableOpacity
-                onPress={() => {
-                  signOut();
-                  setMenuOpen(false);
-                }}
-                style={styles.signOutMenuItem}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.signOutMenuText}>Sign out of Passkey</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={() => {
-                  connectBiometricPasskey();
-                  setMenuOpen(false);
-                }}
-                style={styles.biometricMenuItem}
-                activeOpacity={0.7}
-              >
-                <ShieldCheck size={14} color={Colors.night} />
-                <Text style={styles.biometricMenuText}>Sign in with Biometric Passkey</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              onPress={() => {
+                setMenuOpen(false);
+                setWalletModalOpen(true);
+              }}
+              style={styles.biometricMenuItem}
+              activeOpacity={0.7}
+            >
+              <ShieldCheck size={14} color={Colors.night} />
+              <Text style={styles.biometricMenuText}>
+                {isConnected ? 'Monad Account & Security' : 'Connect Passkey Account'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
+
+      {/* 3. WALLET / PASSKEY MANAGEMENT MODAL */}
+      <WalletModal
+        visible={walletModalOpen}
+        onClose={() => setWalletModalOpen(false)}
+      />
     </View>
   );
 };

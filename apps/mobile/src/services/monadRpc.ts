@@ -22,7 +22,21 @@ export interface FxRateResult {
   provider: string;
 }
 
-const getApiBaseUrl = (): string => {
+export const MONAD_EXPLORER_BASE = 'https://testnet.monadexplorer.com';
+
+export function getMonadTxExplorerUrl(txHash: string): string {
+  if (!txHash) return MONAD_EXPLORER_BASE;
+  const clean = txHash.startsWith('0x') ? txHash : `0x${txHash}`;
+  return `${MONAD_EXPLORER_BASE}/tx/${clean}`;
+}
+
+export function getMonadAddressExplorerUrl(address: string): string {
+  if (!address) return MONAD_EXPLORER_BASE;
+  const clean = address.startsWith('0x') ? address : `0x${address}`;
+  return `${MONAD_EXPLORER_BASE}/address/${clean}`;
+}
+
+export const getApiBaseUrl = (): string => {
   try {
     if (typeof process !== 'undefined' && (process as any)?.env?.EXPO_PUBLIC_API_URL) {
       return (process as any).env.EXPO_PUBLIC_API_URL.replace(/\/$/, '');
@@ -175,11 +189,40 @@ export async function getLiveFxRate(): Promise<FxRateResult> {
 }
 
 /**
+ * Fetches real on-chain native MON balance via eth_getBalance
+ */
+export async function getOnChainMonBalance(account: string): Promise<string> {
+  try {
+    const res = await fetch(MONAD_RPC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 11,
+        method: 'eth_getBalance',
+        params: [account, 'latest'],
+      }),
+    });
+    const data = await res.json();
+    const balanceWei = BigInt(data.result || '0x0');
+    return (Number(balanceWei) / 1e18).toFixed(4);
+  } catch (e) {
+    console.warn('Failed to read onchain MON balance:', e);
+    return '0.0000';
+  }
+}
+
+/**
  * Executes a real IMPS bank cashout settlement via the backend
  */
 export async function executeCashoutOnChain(params: {
   amountUsd: number;
-  upiId: string;
+  upiId?: string;
+  bankDetails?: {
+    accountNumber: string;
+    ifsc: string;
+    beneficiaryName: string;
+  };
   freelancerAddress: string;
   lockedRate: number;
 }): Promise<{
@@ -191,10 +234,21 @@ export async function executeCashoutOnChain(params: {
   amountUsd: number;
 }> {
   const baseUrl = getApiBaseUrl();
+  const destination =
+    params.upiId ||
+    (params.bankDetails
+      ? `${params.bankDetails.accountNumber} (${params.bankDetails.ifsc.toUpperCase()})`
+      : '');
+
   const res = await fetch(`${baseUrl}/api/cashout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
+    body: JSON.stringify({
+      amountUsd: params.amountUsd,
+      freelancerAddress: params.freelancerAddress,
+      lockedRate: params.lockedRate,
+      upiId: destination,
+    }),
   });
 
   const data = await res.json();
@@ -209,6 +263,48 @@ export async function executeCashoutOnChain(params: {
     onchainTxHash: data.onchainTxHash,
     amountInr: data.amountInr,
     amountUsd: data.amountUsd,
+  };
+}
+
+/**
+ * Triggers a gasless meta-transaction broadcast on Monad Testnet via relayer
+ */
+export async function executeRelayAction(params: {
+  action: 'releasePartialWithSig' | 'releaseRemainderWithSig' | 'cancelJobWithSig';
+  jobId: string;
+  deadline?: number;
+  signature?: string;
+}): Promise<{
+  success: boolean;
+  txHash: string;
+  alreadyProcessed?: boolean;
+}> {
+  const baseUrl = getApiBaseUrl();
+  const deadline = params.deadline || Math.floor(Date.now() / 1000) + 1800;
+  const signature =
+    params.signature ||
+    '0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001b';
+
+  const res = await fetch(`${baseUrl}/api/relayer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: params.action,
+      jobId: params.jobId,
+      deadline,
+      signature,
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || `Failed to broadcast ${params.action} on Monad Testnet.`);
+  }
+
+  return {
+    success: true,
+    txHash: data.txHash || '',
+    alreadyProcessed: !!data.alreadyProcessed,
   };
 }
 

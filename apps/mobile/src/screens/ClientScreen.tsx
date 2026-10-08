@@ -29,13 +29,14 @@ interface Props {
 export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
   const { jobs, createJob, releaseRemainder, fxRate, refreshAccountData } = useAccount();
 
-  const [freelancerInput, setFreelancerInput] = useState<string>('@arjun.monad');
-  const [jobTitle, setJobTitle] = useState<string>('Smart Contract Security Audit & Integration');
-  const [amountStr, setAmountStr] = useState<string>('1000');
+  const [freelancerInput, setFreelancerInput] = useState<string>('');
+  const [jobTitle, setJobTitle] = useState<string>('');
+  const [amountStr, setAmountStr] = useState<string>('');
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [actionJobId, setActionJobId] = useState<string | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const amountUsd = parseFloat(amountStr) || 0;
   const partialAdvanceUsd = amountUsd * 0.8;
@@ -54,11 +55,21 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
     }
   };
 
-
   const handleCreateJob = async () => {
-    if (amountUsd <= 0 || !jobTitle.trim() || !freelancerInput.trim()) {
+    if (!freelancerInput.trim()) {
+      setFormError('Please select or enter a freelancer address or handle.');
       return;
     }
+    if (!jobTitle.trim()) {
+      setFormError('Please enter a deliverable title for the escrow.');
+      return;
+    }
+    if (amountUsd <= 0) {
+      setFormError('Please enter a valid deposit amount in AUSD.');
+      return;
+    }
+
+    setFormError(null);
     setIsCreating(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -67,9 +78,12 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
       if (res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setFeedbackMsg(`Escrow #${res.jobId} created & funded on Monad Testnet!`);
+        setJobTitle('');
+        setAmountStr('');
         setTimeout(() => setFeedbackMsg(null), 4000);
       }
     } catch (e: any) {
+      setFormError(e?.message || 'Failed to create escrow on Monad.');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsCreating(false);
@@ -251,6 +265,12 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
             <Text style={styles.splitsVal}>${remainderUsd.toFixed(0)} AUSD</Text>
           </View>
         </View>
+
+        {formError && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{formError}</Text>
+          </View>
+        )}
 
         <TouchableOpacity
           style={styles.actionBtn}
@@ -742,5 +762,17 @@ const styles = StyleSheet.create({
   chipTextActive: {
     color: Colors.mintBright,
     fontWeight: '700',
+  },
+  errorBox: {
+    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 63, 94, 0.3)',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  errorText: {
+    color: Colors.danger,
+    fontSize: 12,
   },
 });

@@ -10,8 +10,10 @@ import {
   getLiveFxRate,
   generateImpsUtr,
   getOnChainAusdBalance,
+  getOnChainMonBalance,
   executeCashoutOnChain,
   executeSendAusdOnChain,
+  executeRelayAction,
   fetchJobsForAccount,
 } from '../services/monadRpc';
 
@@ -21,18 +23,28 @@ interface AccountContextType {
   isConnecting: boolean;
   authType: 'testnet' | 'biometric' | null;
   ausdBalance: number;
+  monBalance: string;
   fxRate: number;
   jobs: EscrowJobItem[];
   ledger: TransactionLedgerItem[];
   connectTestnetPasskey: () => void;
   connectBiometricPasskey: () => Promise<void>;
+  connectCustomAddress: (customAddr: string) => void;
   signOut: () => void;
   refreshAccountData: () => Promise<void>;
   claimAdvance: (jobId: string) => Promise<{ success: boolean; txHash: string }>;
   releaseRemainder: (jobId: string) => Promise<{ success: boolean; txHash: string }>;
   createJob: (title: string, freelancer: string, amount: number) => Promise<{ success: boolean; jobId: string }>;
   sendAusd: (recipient: string, amountUsd: number) => Promise<{ success: boolean; txHash: string }>;
-  processCashout: (amountUsd: number, upiId: string) => Promise<{
+  processCashout: (
+    amountUsd: number,
+    destination: string,
+    bankDetails?: {
+      accountNumber: string;
+      ifsc: string;
+      beneficiaryName: string;
+    }
+  ) => Promise<{
     success: boolean;
     receiptId: string;
     utr: string;
@@ -51,6 +63,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [authType, setAuthType] = useState<'testnet' | 'biometric' | null>(null);
   const [ausdBalance, setAusdBalance] = useState<number>(0.0);
+  const [monBalance, setMonBalance] = useState<string>('0.0000');
   const [fxRate, setFxRate] = useState<number>(96.0);
   const [jobs, setJobs] = useState<EscrowJobItem[]>([]);
   const [ledger, setLedger] = useState<TransactionLedgerItem[]>([]);
@@ -93,9 +106,13 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     try {
-      // 1. Live on-chain AUSD balance via Monad RPC
-      const bal = await getOnChainAusdBalance(address);
+      // 1. Live on-chain AUSD balance and native MON gas balance via Monad RPC
+      const [bal, monBal] = await Promise.all([
+        getOnChainAusdBalance(address),
+        getOnChainMonBalance(address),
+      ]);
       setAusdBalance(bal);
+      setMonBalance(monBal);
 
       // 2. Live on-chain jobs from Monad Escrow contract
       const onchainJobs = await fetchJobsForAccount(address);
@@ -232,8 +249,20 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const targetJob = jobs.find((j) => j.id === jobId);
       if (!targetJob) throw new Error('Escrow contract not found.');
 
+      let txHash = targetJob.txHash || '';
+      try {
+        const relayRes = await executeRelayAction({
+          action: 'releasePartialWithSig',
+          jobId,
+        });
+        if (relayRes.txHash) {
+          txHash = relayRes.txHash;
+        }
+      } catch (relayErr) {
+        console.warn('Relayer broadcast notice for advance:', relayErr);
+      }
+
       const utr = generateImpsUtr();
-      const txHash = targetJob.txHash || '';
 
       const updatedJobs = jobs.map((j) =>
         j.id === jobId ? { ...j, state: JobState.PartiallyReleased } : j
@@ -266,8 +295,20 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const targetJob = jobs.find((j) => j.id === jobId);
       if (!targetJob) throw new Error('Escrow contract not found.');
 
+      let txHash = targetJob.txHash || '';
+      try {
+        const relayRes = await executeRelayAction({
+          action: 'releaseRemainderWithSig',
+          jobId,
+        });
+        if (relayRes.txHash) {
+          txHash = relayRes.txHash;
+        }
+      } catch (relayErr) {
+        console.warn('Relayer broadcast notice for remainder:', relayErr);
+      }
+
       const utr = generateImpsUtr();
-      const txHash = targetJob.txHash || '';
 
       const updatedJobs = jobs.map((j) =>
         j.id === jobId ? { ...j, state: JobState.Completed } : j
@@ -372,8 +413,29 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [address, isLocal, fxRate, saveLedgerItem]
   );
 
+  const connectCustomAddress = useCallback((customAddr: string) => {
+    const clean = customAddr.trim();
+    if (!clean.startsWith('0x') || clean.length !== 42) {
+      throw new Error('Invalid Monad address format. Expected 0x followed by 40 hex characters.');
+    }
+    setAddress(clean);
+    setIsConnected(true);
+    setAuthType('biometric');
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('nadrupee_mobile_session_address', clean);
+    }
+  }, []);
+
   const processCashout = useCallback(
-    async (amountUsd: number, upiId: string) => {
+    async (
+      amountUsd: number,
+      destination: string,
+      bankDetails?: {
+        accountNumber: string;
+        ifsc: string;
+        beneficiaryName: string;
+      }
+    ) => {
       const activeAddr = address || (isLocal ? TESTNET_PASSKEY_ADDRESS : null);
       if (!activeAddr) {
         throw new Error('Please connect your passkey or Monad account first.');
@@ -382,17 +444,23 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Execute authentic on-chain settlement via Monad testnet relayer
       const settlement = await executeCashoutOnChain({
         amountUsd,
-        upiId,
+        upiId: destination,
+        bankDetails,
         freelancerAddress: activeAddr,
         lockedRate: fxRate,
       });
 
       setAusdBalance((prev) => Math.max(0, prev - amountUsd));
 
+      const isBank = !!bankDetails;
+      const desc = isBank
+        ? `Bank Transfer to A/C ${bankDetails.accountNumber} (${bankDetails.ifsc.toUpperCase()})`
+        : `Bank Settle to ${destination} via IMPS`;
+
       const newItem: TransactionLedgerItem = {
         id: `tx-cashout-${Date.now()}`,
         type: 'Cash out',
-        description: `Bank Settle to ${upiId} via IMPS`,
+        description: desc,
         amountInr: settlement.amountInr,
         amountUsd: settlement.amountUsd,
         isCredit: false,
@@ -412,7 +480,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         txHash: settlement.onchainTxHash,
       };
     },
-    [address, fxRate, saveLedgerItem]
+    [address, isLocal, fxRate, saveLedgerItem]
   );
 
   return (
@@ -423,11 +491,13 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isConnecting,
         authType,
         ausdBalance,
+        monBalance,
         fxRate,
         jobs,
         ledger,
         connectTestnetPasskey,
         connectBiometricPasskey,
+        connectCustomAddress,
         signOut,
         refreshAccountData,
         claimAdvance,
