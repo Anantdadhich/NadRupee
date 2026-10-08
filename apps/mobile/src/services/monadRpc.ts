@@ -23,8 +23,21 @@ export interface FxRateResult {
 }
 
 const getApiBaseUrl = (): string => {
+  try {
+    if (typeof process !== 'undefined' && (process as any)?.env?.EXPO_PUBLIC_API_URL) {
+      return (process as any).env.EXPO_PUBLIC_API_URL.replace(/\/$/, '');
+    }
+  } catch {}
+
   if (typeof window !== 'undefined' && window.location) {
     if (window.location.port === '3000') {
+      return '';
+    }
+    // In production web deployment (e.g. Vercel), relative API routes work directly
+    if (
+      !window.location.hostname.includes('localhost') &&
+      !window.location.hostname.includes('127.0.0.1')
+    ) {
       return '';
     }
   }

@@ -46,10 +46,10 @@ const AccountContext = createContext<AccountContextType | undefined>(undefined);
 
 export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isLocal = isLocalOrTestEnvironment();
-  const [address, setAddress] = useState<string | null>(isLocal ? TESTNET_PASSKEY_ADDRESS : null);
-  const [isConnected, setIsConnected] = useState<boolean>(isLocal);
+  const [address, setAddress] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
-  const [authType, setAuthType] = useState<'testnet' | 'biometric' | null>(isLocal ? 'testnet' : null);
+  const [authType, setAuthType] = useState<'testnet' | 'biometric' | null>(null);
   const [ausdBalance, setAusdBalance] = useState<number>(0.0);
   const [fxRate, setFxRate] = useState<number>(96.0);
   const [jobs, setJobs] = useState<EscrowJobItem[]>([]);
@@ -63,6 +63,25 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     });
   }, []);
+
+  // Restore stored session, or auto-connect in localhost only
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem('nadrupee_mobile_session_address');
+      if (stored && stored.startsWith('0x') && stored.length === 42) {
+        setAddress(stored);
+        setIsConnected(true);
+        setAuthType(stored === TESTNET_PASSKEY_ADDRESS ? 'testnet' : 'biometric');
+        return;
+      }
+    }
+    // Only in local development (localhost), auto-initialize testnet passkey
+    if (isLocal) {
+      setAddress(TESTNET_PASSKEY_ADDRESS);
+      setIsConnected(true);
+      setAuthType('testnet');
+    }
+  }, [isLocal]);
 
   // Fetch real on-chain balance, jobs, and ledger for the active address
   const refreshAccountData = useCallback(async () => {
@@ -132,17 +151,43 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsConnected(true);
       setAuthType('testnet');
       setIsConnecting(false);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('nadrupee_mobile_session_address', TESTNET_PASSKEY_ADDRESS);
+      }
     }, 250);
   }, []);
 
   const connectBiometricPasskey = useCallback(async () => {
     setIsConnecting(true);
-    setTimeout(() => {
-      setAddress(TESTNET_PASSKEY_ADDRESS);
+
+    try {
+      let sessionAddr = '';
+      if (typeof window !== 'undefined' && (window as any).localStorage) {
+        sessionAddr = (window as any).localStorage.getItem('nadrupee_device_passkey_address') || '';
+      }
+
+      if (!sessionAddr || !sessionAddr.startsWith('0x') || sessionAddr.length !== 42) {
+        const randHex = Math.random().toString(16).slice(2).padStart(8, '0');
+        const randHex2 = Math.random().toString(16).slice(2).padStart(8, '0');
+        const randHex3 = Math.random().toString(16).slice(2).padStart(8, '0');
+        const randHex4 = Math.random().toString(16).slice(2).padStart(8, '0');
+        const randHex5 = Math.random().toString(16).slice(2).padStart(8, '0');
+        sessionAddr = `0x${randHex}${randHex2}${randHex3}${randHex4}${randHex5}`.slice(0, 42);
+
+        if (typeof window !== 'undefined' && (window as any).localStorage) {
+          (window as any).localStorage.setItem('nadrupee_device_passkey_address', sessionAddr);
+        }
+      }
+
+      setAddress(sessionAddr);
       setIsConnected(true);
       setAuthType('biometric');
+      if (typeof window !== 'undefined' && (window as any).localStorage) {
+        (window as any).localStorage.setItem('nadrupee_mobile_session_address', sessionAddr);
+      }
+    } finally {
       setIsConnecting(false);
-    }, 600);
+    }
   }, []);
 
   const signOut = useCallback(() => {
@@ -152,6 +197,9 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setAusdBalance(0);
     setJobs([]);
     setLedger([]);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem('nadrupee_mobile_session_address');
+    }
   }, []);
 
   const saveLedgerItem = useCallback(
@@ -254,10 +302,15 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const newJobId = (jobs.length + 1).toString();
       const utr = generateImpsUtr();
 
+      const activeAddr = address || (isLocal ? TESTNET_PASSKEY_ADDRESS : null);
+      if (!activeAddr) {
+        throw new Error('Please connect your passkey or Monad account first.');
+      }
+
       const newJob: EscrowJobItem = {
         id: newJobId,
         title,
-        client: address || TESTNET_PASSKEY_ADDRESS,
+        client: activeAddr,
         freelancer,
         amountUsd: amount,
         partialAmountUsd: partial,
@@ -283,12 +336,15 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       saveLedgerItem(newItem);
       return { success: true, jobId: newJobId };
     },
-    [jobs, address, fxRate, saveLocalJobs, saveLedgerItem]
+    [jobs, address, isLocal, fxRate, saveLocalJobs, saveLedgerItem]
   );
 
   const sendAusd = useCallback(
     async (recipient: string, amountUsd: number) => {
-      const activeAddr = address || TESTNET_PASSKEY_ADDRESS;
+      const activeAddr = address || (isLocal ? TESTNET_PASSKEY_ADDRESS : null);
+      if (!activeAddr) {
+        throw new Error('Please connect your passkey or Monad account first.');
+      }
 
       // Real onchain / relayer transfer
       const res = await executeSendAusdOnChain({
@@ -313,12 +369,15 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       saveLedgerItem(newItem);
       return { success: true, txHash: res.txHash };
     },
-    [address, fxRate, saveLedgerItem]
+    [address, isLocal, fxRate, saveLedgerItem]
   );
 
   const processCashout = useCallback(
     async (amountUsd: number, upiId: string) => {
-      const activeAddr = address || TESTNET_PASSKEY_ADDRESS;
+      const activeAddr = address || (isLocal ? TESTNET_PASSKEY_ADDRESS : null);
+      if (!activeAddr) {
+        throw new Error('Please connect your passkey or Monad account first.');
+      }
 
       // Execute authentic on-chain settlement via Monad testnet relayer
       const settlement = await executeCashoutOnChain({

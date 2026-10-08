@@ -1,32 +1,43 @@
-export const MONAD_CHAIN_ID = 10143;
-export const MONAD_RPC_URL = 'https://testnet-rpc.monad.xyz';
+const getEnv = (key: string, fallback: string): string => {
+  try {
+    if (typeof process !== 'undefined' && (process as any)?.env?.[key]) {
+      return (process as any).env[key];
+    }
+  } catch {}
+  return fallback;
+};
+
+export const MONAD_CHAIN_ID = Number(getEnv('EXPO_PUBLIC_CHAIN_ID', '10143')) || 10143;
+export const MONAD_RPC_URL = getEnv('EXPO_PUBLIC_MONAD_RPC_URL', 'https://testnet-rpc.monad.xyz');
 export const MONAD_EXPLORER_URL = 'https://testnet.monadexplorer.com';
 
 // Contract Addresses deployed on Monad Testnet
-export const ESCROW_CONTRACT_ADDRESS = '0xBEe8F42f71ffFb7f2b34224ef5B88671Db2D97C4';
-export const AUSD_CONTRACT_ADDRESS = '0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC';
-export const RELAYER_ADDRESS = '0x47Cc14B5D120E404d6fddf86C136B392529d1123';
+export const ESCROW_CONTRACT_ADDRESS = getEnv(
+  'EXPO_PUBLIC_ESCROW_ADDRESS',
+  '0xBEe8F42f71ffFb7f2b34224ef5B88671Db2D97C4'
+);
+export const AUSD_CONTRACT_ADDRESS = getEnv(
+  'EXPO_PUBLIC_AUSD_ADDRESS',
+  '0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC'
+);
+export const RELAYER_ADDRESS = getEnv(
+  'EXPO_PUBLIC_RELAYER_ADDRESS',
+  '0x47Cc14B5D120E404d6fddf86C136B392529d1123'
+);
 
-// 1-Click Pre-Configured Testnet Passkey EOA (Deterministic for testing)
+// 1-Click Pre-Configured Testnet Passkey EOA (Deterministic for testing on localhost only)
 export const TESTNET_PASSKEY_ADDRESS = '0xCf098B151d867CE2874FC13CAED17b81E1f73688';
 
 /**
- * Gates testnet passkey bypass so it is only available in our browser / localhost
- * and never shown on public production deployments.
+ * Gates testnet passkey bypass so it is strictly available in localhost / 127.0.0.1
+ * and NEVER auto-connected or exposed on public production deployments.
  */
 export const isLocalOrTestEnvironment = (): boolean => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && window.location) {
     const host = window.location.hostname;
-    return (
-      host === 'localhost' ||
-      host === '127.0.0.1' ||
-      host.endsWith('.local') ||
-      host.startsWith('192.168.') ||
-      host.startsWith('10.') ||
-      host.includes('preview')
-    );
+    return host === 'localhost' || host === '127.0.0.1';
   }
-  return typeof __DEV__ !== 'undefined' ? __DEV__ : false;
+  return false;
 };
 
 export const KNOWN_FREELANCERS: Record<string, string> = {

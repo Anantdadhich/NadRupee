@@ -83,17 +83,25 @@ export const Header: React.FC<Props> = ({ activeTab, onTabChange }) => {
                 )}
               </TouchableOpacity>
             </View>
+          ) : isLocalOrTestEnvironment() ? (
+            <TouchableOpacity
+              onPress={connectTestnetPasskey}
+              disabled={isConnecting}
+              style={styles.testnetBtn}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.testnetBtnText}>⚡ Testnet Passkey</Text>
+            </TouchableOpacity>
           ) : (
-            isLocalOrTestEnvironment() && (
-              <TouchableOpacity
-                onPress={connectTestnetPasskey}
-                disabled={isConnecting}
-                style={styles.testnetBtn}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.testnetBtnText}>⚡ Testnet Passkey</Text>
-              </TouchableOpacity>
-            )
+            <TouchableOpacity
+              onPress={connectBiometricPasskey}
+              disabled={isConnecting}
+              style={styles.connectBtn}
+              activeOpacity={0.7}
+            >
+              <ShieldCheck size={12} color={Colors.night} />
+              <Text style={styles.connectBtnText}>Connect</Text>
+            </TouchableOpacity>
           )}
 
           {/* Round 40x40 Hamburger Menu Button (Matching web .menu-button) */}
@@ -247,6 +255,21 @@ const styles = StyleSheet.create({
   },
   testnetBtnText: {
     color: Colors.mint,
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  connectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: Colors.paper,
+  },
+  connectBtnText: {
+    color: Colors.night,
     fontSize: 11,
     fontWeight: '700',
     fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
