@@ -12,7 +12,16 @@ import { Colors } from '../theme/colors';
 import { useAccount } from '../context/AccountContext';
 import { CashoutModal } from '../components/CashoutModal';
 import { SendAusdModal } from '../components/SendAusdModal';
-import { JobState, JOB_STATE_LABELS, ESCROW_CONTRACT_ADDRESS } from '../constants/config';
+import { JobDetailsModal } from '../components/JobDetailsModal';
+import { TransactionReceiptModal } from '../components/TransactionReceiptModal';
+import { Toast, ToastConfig } from '../components/Toast';
+import {
+  JobState,
+  JOB_STATE_LABELS,
+  ESCROW_CONTRACT_ADDRESS,
+  EscrowJobItem,
+  TransactionLedgerItem,
+} from '../constants/config';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
 import {
@@ -22,12 +31,17 @@ import {
   Send,
   ExternalLink,
   ArrowRight,
+  ChevronRight,
+  Receipt,
+  Filter,
 } from 'lucide-react-native';
 import { TabType } from '../components/BottomNav';
 
 interface Props {
   onNavigateTab?: (tab: TabType) => void;
 }
+
+type JobFilterType = 'all' | 'claimable' | 'progress' | 'completed';
 
 export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
   const {
@@ -43,13 +57,28 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
 
   const [cashoutVisible, setCashoutVisible] = useState<boolean>(false);
   const [sendAusdVisible, setSendAusdVisible] = useState<boolean>(false);
+  const [sendAusdRecipient, setSendAusdRecipient] = useState<string>('');
+  const [selectedJob, setSelectedJob] = useState<EscrowJobItem | null>(null);
+  const [selectedLedgerItem, setSelectedLedgerItem] = useState<TransactionLedgerItem | null>(null);
+  const [jobFilter, setJobFilter] = useState<JobFilterType>('all');
+  const [toast, setToast] = useState<ToastConfig | null>(null);
   const [claimingJobId, setClaimingJobId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [claimSuccessMsg, setClaimSuccessMsg] = useState<string | null>(null);
 
   const inrBalance = (ausdBalance * fxRate).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  });
+
+  const claimableCount = jobs.filter((j) => j.state === JobState.Funded).length;
+  const progressCount = jobs.filter((j) => j.state === JobState.PartiallyReleased).length;
+  const completedCount = jobs.filter((j) => j.state === JobState.Completed).length;
+
+  const displayedJobs = jobs.filter((j) => {
+    if (jobFilter === 'claimable') return j.state === JobState.Funded;
+    if (jobFilter === 'progress') return j.state === JobState.PartiallyReleased;
+    if (jobFilter === 'completed') return j.state === JobState.Completed;
+    return true;
   });
 
   const handleRefresh = async () => {
@@ -57,6 +86,9 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       await refreshAccountData();
+      setToast({ type: 'success', message: 'Account data synchronized with Monad Testnet.' });
+    } catch {
+      setToast({ type: 'error', message: 'Unable to refresh data. Please check connection.' });
     } finally {
       setIsRefreshing(false);
     }
@@ -73,11 +105,13 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
         const msg = res.txHash
           ? `80% Advance claimed on Monad Testnet! Tx: ${res.txHash.slice(0, 10)}...`
           : `80% Advance claimed & deposited on Monad!`;
-        setClaimSuccessMsg(msg);
-        setTimeout(() => setClaimSuccessMsg(null), 5000);
+        setToast({ type: 'success', message: msg });
       }
+      return res;
     } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setToast({ type: 'error', message: err?.message || 'Failed to claim advance.' });
+      throw err;
     } finally {
       setClaimingJobId(null);
     }
@@ -129,13 +163,7 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
         </Text>
       </View>
 
-      {/* Claim Success Banner */}
-      {claimSuccessMsg && (
-        <View style={styles.alertSuccess}>
-          <Check size={14} color={Colors.mint} />
-          <Text style={styles.alertSuccessText}>{claimSuccessMsg}</Text>
-        </View>
-      )}
+
 
       {/* 2. THREE TOP METRIC CARDS (Exact replica of web .portal-card) */}
       <View style={styles.cardsStack}>
@@ -268,11 +296,68 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
           </TouchableOpacity>
         </View>
 
+        {/* Filter Pills */}
+        <View style={styles.filterChipsRow}>
+          <TouchableOpacity
+            style={[styles.filterChip, jobFilter === 'all' && styles.filterChipActive]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setJobFilter('all');
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterChipText, jobFilter === 'all' && styles.filterChipTextActive]}>
+              All ({jobs.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterChip, jobFilter === 'claimable' && styles.filterChipActive]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setJobFilter('claimable');
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterChipText, jobFilter === 'claimable' && styles.filterChipTextActive]}>
+              Ready ({claimableCount})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterChip, jobFilter === 'progress' && styles.filterChipActive]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setJobFilter('progress');
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterChipText, jobFilter === 'progress' && styles.filterChipTextActive]}>
+              In Progress ({progressCount})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterChip, jobFilter === 'completed' && styles.filterChipActive]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setJobFilter('completed');
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterChipText, jobFilter === 'completed' && styles.filterChipTextActive]}>
+              Done ({completedCount})
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.jobsList}>
-          {jobs.length === 0 ? (
+          {displayedJobs.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyTitle}>
-                No active job escrows found for your address yet.
+                {jobFilter === 'all'
+                  ? 'No active job escrows found for your address yet.'
+                  : `No ${jobFilter} escrows found.`}
               </Text>
               <Text style={styles.emptyText}>
                 When a client creates and funds a job in the Client Portal, it will appear here immediately.
@@ -292,7 +377,7 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
               )}
             </View>
           ) : (
-            jobs.map((job) => {
+            displayedJobs.map((job) => {
               const totalInr = (job.amountUsd * fxRate).toLocaleString('en-IN');
               const advanceInr = (job.partialAmountUsd * fxRate).toLocaleString('en-IN');
               const isFunded = job.state === JobState.Funded;
@@ -301,9 +386,20 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
               const isClaiming = claimingJobId === job.id;
 
               return (
-                <View key={job.id} style={styles.jobItemCard}>
+                <TouchableOpacity
+                  key={job.id}
+                  style={styles.jobItemCard}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSelectedJob(job);
+                  }}
+                  activeOpacity={0.85}
+                >
                   <View style={styles.jobItemTop}>
-                    <Text style={styles.jobItemTitle}>{job.title}</Text>
+                    <View style={{ flex: 1, marginRight: 8 }}>
+                      <Text style={styles.jobItemTitle}>{job.title}</Text>
+                      <Text style={styles.jobItemSubCode}>Escrow #{job.id}</Text>
+                    </View>
                     <View
                       style={[
                         styles.stateBadge,
@@ -332,7 +428,7 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
                     </Text>
                   </View>
 
-                  {/* Actions */}
+                  {/* Actions & Inspect Bar */}
                   <View style={styles.jobActionsRow}>
                     {isFunded && (
                       <TouchableOpacity
@@ -362,8 +458,13 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
                         <Text style={styles.claimedText}>100% Payout Finalized</Text>
                       </View>
                     )}
+
+                    <View style={styles.inspectRow}>
+                      <Text style={styles.inspectText}>Inspect</Text>
+                      <ChevronRight size={13} color={Colors.mint} />
+                    </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })
           )}
@@ -387,8 +488,16 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
             </View>
           ) : (
             ledger.map((item) => (
-              <View key={item.id} style={styles.ledgerItem}>
-                <View style={{ flex: 1 }}>
+              <TouchableOpacity
+                key={item.id}
+                style={styles.ledgerItem}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSelectedLedgerItem(item);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={styles.ledgerItemDesc}>{item.description}</Text>
                   <View style={styles.ledgerMeta}>
                     <Text style={styles.ledgerTime}>{item.timestamp}</Text>
@@ -396,19 +505,12 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
                       <Text style={styles.ledgerUtr}>UTR: {item.referenceCode}</Text>
                     )}
                     {item.onchainTxHash && (
-                      <TouchableOpacity
-                        onPress={async () => {
-                          await Clipboard.setStringAsync(item.onchainTxHash!);
-                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                        }}
-                        style={styles.ledgerTxBadge}
-                        activeOpacity={0.7}
-                      >
+                      <View style={styles.ledgerTxBadge}>
                         <Text style={styles.ledgerTxText}>
                           Tx: {item.onchainTxHash.slice(0, 6)}...{item.onchainTxHash.slice(-4)}
                         </Text>
                         <ExternalLink size={9} color={Colors.mint} />
-                      </TouchableOpacity>
+                      </View>
                     )}
                   </View>
                 </View>
@@ -425,11 +527,32 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
                     {item.isCredit ? '+' : '-'}${item.amountUsd} AUSD
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </View>
       </View>
+
+      {/* Job Details Modal */}
+      <JobDetailsModal
+        visible={!!selectedJob}
+        onClose={() => setSelectedJob(null)}
+        job={selectedJob}
+        fxRate={fxRate}
+        isFreelancerView={true}
+        onClaimAdvance={handleClaim}
+        onOpenSendAusd={(recipient) => {
+          setSendAusdRecipient(recipient);
+          setSendAusdVisible(true);
+        }}
+      />
+
+      {/* Transaction Receipt Modal */}
+      <TransactionReceiptModal
+        visible={!!selectedLedgerItem}
+        onClose={() => setSelectedLedgerItem(null)}
+        item={selectedLedgerItem}
+      />
 
       {/* Cashout Modal */}
       <CashoutModal
@@ -441,9 +564,16 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
       {/* Send AUSD Modal */}
       <SendAusdModal
         visible={sendAusdVisible}
-        onClose={() => setSendAusdVisible(false)}
+        onClose={() => {
+          setSendAusdVisible(false);
+          setSendAusdRecipient('');
+        }}
+        defaultRecipient={sendAusdRecipient}
         defaultAmount={Math.min(50, Math.floor(ausdBalance))}
       />
+
+      {/* Global Toast */}
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </ScrollView>
   );
 };
@@ -798,8 +928,59 @@ const styles = StyleSheet.create({
     color: Colors.mutedForeground,
     fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
+  filterChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  filterChipActive: {
+    backgroundColor: 'rgba(56, 217, 169, 0.15)',
+    borderColor: Colors.mint,
+  },
+  filterChipText: {
+    fontSize: 11,
+    color: Colors.paperDim,
+    fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  filterChipTextActive: {
+    color: Colors.mintBright,
+    fontWeight: '700',
+  },
+  jobItemSubCode: {
+    fontSize: 10,
+    fontFamily: 'monospace',
+    color: Colors.mutedForeground,
+    marginTop: 2,
+  },
   jobActionsRow: {
-    paddingTop: 4,
+    paddingTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  inspectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginLeft: 'auto',
+  },
+  inspectText: {
+    fontSize: 11,
+    color: Colors.mint,
+    fontWeight: '600',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
   claimedRow: {
     flexDirection: 'row',

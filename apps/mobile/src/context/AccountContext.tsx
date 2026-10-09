@@ -16,6 +16,7 @@ import {
   executeRelayAction,
   fetchJobsForAccount,
 } from '../services/monadRpc';
+import { storage } from '../services/storage';
 
 interface AccountContextType {
   address: string | null;
@@ -79,14 +80,12 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Restore stored session, or auto-connect in localhost only
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const stored = localStorage.getItem('nadrupee_mobile_session_address');
-      if (stored && stored.startsWith('0x') && stored.length === 42) {
-        setAddress(stored);
-        setIsConnected(true);
-        setAuthType(stored === TESTNET_PASSKEY_ADDRESS ? 'testnet' : 'biometric');
-        return;
-      }
+    const stored = storage.getItem('nadrupee_mobile_session_address');
+    if (stored && stored.startsWith('0x') && stored.length === 42) {
+      setAddress(stored);
+      setIsConnected(true);
+      setAuthType(stored === TESTNET_PASSKEY_ADDRESS ? 'testnet' : 'biometric');
+      return;
     }
     // Only in local development (localhost), auto-initialize testnet passkey
     if (isLocal) {
@@ -119,39 +118,22 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // Load any locally stored jobs for this account and merge
       let mergedJobs: EscrowJobItem[] = [...onchainJobs];
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const localKey = `nadrupee_mobile_jobs_${address.toLowerCase()}`;
-        const stored = localStorage.getItem(localKey);
-        if (stored) {
-          try {
-            const parsed: EscrowJobItem[] = JSON.parse(stored);
-            const existingIds = new Set(mergedJobs.map((j) => j.id));
-            for (const item of parsed) {
-              if (!existingIds.has(item.id)) {
-                mergedJobs.push(item);
-              }
-            }
-          } catch (e) {
-            console.warn('Failed to parse local stored jobs:', e);
+      const localKey = `nadrupee_mobile_jobs_${address.toLowerCase()}`;
+      const storedJobs = storage.getJSON<EscrowJobItem[]>(localKey, []);
+      if (storedJobs && storedJobs.length > 0) {
+        const existingIds = new Set(mergedJobs.map((j) => j.id));
+        for (const item of storedJobs) {
+          if (!existingIds.has(item.id)) {
+            mergedJobs.push(item);
           }
         }
       }
       setJobs(mergedJobs);
 
       // 3. Persistent transaction ledger for this address
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const ledgerKey = `nadrupee_mobile_ledger_${address.toLowerCase()}`;
-        const storedLedger = localStorage.getItem(ledgerKey);
-        if (storedLedger) {
-          try {
-            setLedger(JSON.parse(storedLedger));
-          } catch (e) {
-            console.warn('Failed to parse local stored ledger:', e);
-          }
-        } else {
-          setLedger([]);
-        }
-      }
+      const ledgerKey = `nadrupee_mobile_ledger_${address.toLowerCase()}`;
+      const storedLedger = storage.getJSON<TransactionLedgerItem[]>(ledgerKey, []);
+      setLedger(storedLedger);
     } catch (err) {
       console.warn('Error refreshing account data:', err);
     }
@@ -168,9 +150,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsConnected(true);
       setAuthType('testnet');
       setIsConnecting(false);
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem('nadrupee_mobile_session_address', TESTNET_PASSKEY_ADDRESS);
-      }
+      storage.setItem('nadrupee_mobile_session_address', TESTNET_PASSKEY_ADDRESS);
     }, 250);
   }, []);
 
@@ -178,10 +158,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsConnecting(true);
 
     try {
-      let sessionAddr = '';
-      if (typeof window !== 'undefined' && (window as any).localStorage) {
-        sessionAddr = (window as any).localStorage.getItem('nadrupee_device_passkey_address') || '';
-      }
+      let sessionAddr = storage.getItem('nadrupee_device_passkey_address') || '';
 
       if (!sessionAddr || !sessionAddr.startsWith('0x') || sessionAddr.length !== 42) {
         const randHex = Math.random().toString(16).slice(2).padStart(8, '0');
@@ -191,17 +168,13 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const randHex5 = Math.random().toString(16).slice(2).padStart(8, '0');
         sessionAddr = `0x${randHex}${randHex2}${randHex3}${randHex4}${randHex5}`.slice(0, 42);
 
-        if (typeof window !== 'undefined' && (window as any).localStorage) {
-          (window as any).localStorage.setItem('nadrupee_device_passkey_address', sessionAddr);
-        }
+        storage.setItem('nadrupee_device_passkey_address', sessionAddr);
       }
 
       setAddress(sessionAddr);
       setIsConnected(true);
       setAuthType('biometric');
-      if (typeof window !== 'undefined' && (window as any).localStorage) {
-        (window as any).localStorage.setItem('nadrupee_mobile_session_address', sessionAddr);
-      }
+      storage.setItem('nadrupee_mobile_session_address', sessionAddr);
     } finally {
       setIsConnecting(false);
     }
@@ -214,18 +187,16 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setAusdBalance(0);
     setJobs([]);
     setLedger([]);
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.removeItem('nadrupee_mobile_session_address');
-    }
+    storage.removeItem('nadrupee_mobile_session_address');
   }, []);
 
   const saveLedgerItem = useCallback(
     (item: TransactionLedgerItem) => {
       setLedger((prev) => {
         const updated = [item, ...prev];
-        if (address && typeof window !== 'undefined' && window.localStorage) {
+        if (address) {
           const ledgerKey = `nadrupee_mobile_ledger_${address.toLowerCase()}`;
-          localStorage.setItem(ledgerKey, JSON.stringify(updated));
+          storage.setJSON(ledgerKey, updated);
         }
         return updated;
       });
@@ -236,9 +207,9 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const saveLocalJobs = useCallback(
     (newJobs: EscrowJobItem[]) => {
       setJobs(newJobs);
-      if (address && typeof window !== 'undefined' && window.localStorage) {
+      if (address) {
         const localKey = `nadrupee_mobile_jobs_${address.toLowerCase()}`;
-        localStorage.setItem(localKey, JSON.stringify(newJobs));
+        storage.setJSON(localKey, newJobs);
       }
     },
     [address]
@@ -421,9 +392,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setAddress(clean);
     setIsConnected(true);
     setAuthType('biometric');
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem('nadrupee_mobile_session_address', clean);
-    }
+    storage.setItem('nadrupee_mobile_session_address', clean);
   }, []);
 
   const processCashout = useCallback(
