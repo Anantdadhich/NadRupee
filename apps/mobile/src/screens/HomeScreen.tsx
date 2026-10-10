@@ -18,6 +18,11 @@ import {
   Check,
   Activity,
   IndianRupee,
+  Briefcase,
+  FileText,
+  Zap,
+  ChevronRight,
+  TrendingUp,
 } from 'lucide-react-native';
 import { useAccount } from '../context/AccountContext';
 
@@ -26,7 +31,7 @@ interface Props {
 }
 
 export const HomeScreen: React.FC<Props> = ({ onNavigateTab }) => {
-  const { refreshAccountData } = useAccount();
+  const { address, isConnected, ausdBalance, fxRate, jobs, refreshAccountData } = useAccount();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -110,6 +115,141 @@ export const HomeScreen: React.FC<Props> = ({ onNavigateTab }) => {
             style={styles.heroProductImg}
             resizeMode="contain"
           />
+        </View>
+      </View>
+
+      {/* 1.5 LIVE PROTOCOL HUB & QUICK ACTIONS */}
+      <View style={styles.hubSection}>
+        {/* Live Status Bar */}
+        <View style={styles.liveStatusBar}>
+          <View style={styles.liveStatusLeft}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveStatusTitle}>Monad Testnet · Chain 10143</Text>
+          </View>
+          <View style={styles.liveRatePill}>
+            <TrendingUp size={11} color={Colors.mint} />
+            <Text style={styles.liveRateText}>1 USD = ₹{fxRate.toFixed(2)}</Text>
+          </View>
+        </View>
+
+        {/* User Account Quick Card if connected */}
+        {isConnected && address && (
+          <View style={styles.userQuickCard}>
+            <View style={styles.userQuickHeader}>
+              <View>
+                <Text style={styles.userQuickSub}>ACTIVE PASSKEY ACCOUNT</Text>
+                <Text style={styles.userQuickAddr}>
+                  {address.slice(0, 8)}...{address.slice(-6)}
+                </Text>
+              </View>
+              <View style={styles.userQuickBadge}>
+                <ShieldCheck size={11} color={Colors.mintBright} />
+                <Text style={styles.userQuickBadgeText}>Passkey Protected</Text>
+              </View>
+            </View>
+
+            <View style={styles.userQuickBalances}>
+              <View style={styles.userBalanceCol}>
+                <Text style={styles.balanceColLabel}>AGORA AUSD</Text>
+                <Text style={styles.balanceColVal}>${ausdBalance.toFixed(2)}</Text>
+                <Text style={styles.balanceColInr}>
+                  ≈ ₹{(ausdBalance * fxRate).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                </Text>
+              </View>
+              <View style={styles.balanceColDivider} />
+              <View style={styles.userBalanceCol}>
+                <Text style={styles.balanceColLabel}>ESCROWS</Text>
+                <Text style={styles.balanceColVal}>{jobs.length} Active</Text>
+                <Text style={[styles.balanceColInr, { color: Colors.mintBright }]}>
+                  Gas Sponsored ₹0
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Quick Action Matrix (4 tiles) */}
+        <Text style={styles.hubHeading}>QUICK PROTOCOL ACTIONS</Text>
+        <View style={styles.quickGrid}>
+          {/* Tile 1: Freelancer */}
+          <TouchableOpacity
+            style={styles.quickTile}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onNavigateTab('freelancer');
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.tileIconCircle, { backgroundColor: 'rgba(56, 217, 169, 0.12)' }]}>
+              <Briefcase size={16} color={Colors.mintBright} />
+            </View>
+            <Text style={styles.tileTitle}>Freelancer</Text>
+            <Text style={styles.tileDesc}>Claim 80% instant advances & view escrows</Text>
+            <View style={styles.tileArrowRow}>
+              <Text style={styles.tileArrowText}>Open</Text>
+              <ChevronRight size={12} color={Colors.mint} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Tile 2: Client */}
+          <TouchableOpacity
+            style={styles.quickTile}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onNavigateTab('client');
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.tileIconCircle, { backgroundColor: 'rgba(99, 102, 241, 0.12)' }]}>
+              <FileText size={16} color="#818cf8" />
+            </View>
+            <Text style={styles.tileTitle}>Client Escrow</Text>
+            <Text style={styles.tileDesc}>Lock AUSD & approve 20% milestone releases</Text>
+            <View style={styles.tileArrowRow}>
+              <Text style={styles.tileArrowText}>Open</Text>
+              <ChevronRight size={12} color="#818cf8" />
+            </View>
+          </TouchableOpacity>
+
+          {/* Tile 3: Cash Out */}
+          <TouchableOpacity
+            style={styles.quickTile}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onNavigateTab('offramp');
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.tileIconCircle, { backgroundColor: 'rgba(234, 179, 8, 0.12)' }]}>
+              <Zap size={16} color="#facc15" />
+            </View>
+            <Text style={styles.tileTitle}>Instant Cash Out</Text>
+            <Text style={styles.tileDesc}>UPI & IMPS Indian bank settlements (&lt;60s)</Text>
+            <View style={styles.tileArrowRow}>
+              <Text style={styles.tileArrowText}>Settle</Text>
+              <ChevronRight size={12} color="#facc15" />
+            </View>
+          </TouchableOpacity>
+
+          {/* Tile 4: Protocol Lab */}
+          <TouchableOpacity
+            style={styles.quickTile}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onNavigateTab('protocol');
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.tileIconCircle, { backgroundColor: 'rgba(248, 250, 252, 0.08)' }]}>
+              <ShieldCheck size={16} color={Colors.paper} />
+            </View>
+            <Text style={styles.tileTitle}>Protocol Lab</Text>
+            <Text style={styles.tileDesc}>Inspect contracts, relayer balance & diagnostics</Text>
+            <View style={styles.tileArrowRow}>
+              <Text style={styles.tileArrowText}>Inspect</Text>
+              <ChevronRight size={12} color={Colors.paper} />
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -1232,6 +1372,184 @@ const styles = StyleSheet.create({
     color: 'rgba(248, 250, 252, 0.35)',
     fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
     marginTop: 4,
+  },
+
+  // 10. Live Hub & Quick Grid
+  hubSection: {
+    marginBottom: 32,
+    gap: 14,
+  },
+  liveStatusBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  liveStatusLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: Colors.mintBright,
+  },
+  liveStatusTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  liveRatePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(56, 217, 169, 0.12)',
+    paddingVertical: 4,
+    paddingHorizontal: 9,
+    borderRadius: 10,
+  },
+  liveRateText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.mintBright,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  userQuickCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+  },
+  userQuickHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  userQuickSub: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: Colors.mutedForeground,
+  },
+  userQuickAddr: {
+    fontSize: 13,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: Colors.paper,
+    marginTop: 2,
+  },
+  userQuickBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(56, 217, 169, 0.15)',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  userQuickBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.mintBright,
+  },
+  userQuickBalances: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  userBalanceCol: {
+    flex: 1,
+  },
+  balanceColDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginHorizontal: 12,
+  },
+  balanceColLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Colors.mutedForeground,
+    letterSpacing: 0.5,
+  },
+  balanceColVal: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    marginTop: 2,
+  },
+  balanceColInr: {
+    fontSize: 11,
+    color: Colors.paperDim,
+    marginTop: 1,
+  },
+  hubHeading: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.mutedForeground,
+    letterSpacing: 0.8,
+    marginTop: 6,
+    marginLeft: 2,
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  quickTile: {
+    width: '48.5%',
+    backgroundColor: 'rgba(255, 255, 255, 0.035)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 16,
+    padding: 14,
+    gap: 6,
+  },
+  tileIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  tileTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.paper,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  tileDesc: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    lineHeight: 15,
+    minHeight: 30,
+  },
+  tileArrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginTop: 4,
+  },
+  tileArrowText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.mint,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
 });
 

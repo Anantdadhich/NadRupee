@@ -67,9 +67,9 @@ export const Toast: React.FC<Props> = ({ toast, onDismiss }) => {
         {
           opacity,
           transform: [{ translateY }],
+          pointerEvents: 'none' as const,
         },
       ]}
-      pointerEvents="none"
     >
       <View style={styles.iconWrap}>
         {isSuccess && <Check size={14} color={Colors.mintBright} />}

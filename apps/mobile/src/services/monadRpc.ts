@@ -323,15 +323,21 @@ export function generateImpsUtr(): string {
 export async function fetchJobsForAccount(account: string): Promise<EscrowJobItem[]> {
   try {
     const baseUrl = getApiBaseUrl();
-    const res = await fetch(`${baseUrl}/api/jobs?address=${account}`);
+    if (!baseUrl) return [];
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(`${baseUrl}/api/jobs?address=${account}`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
     if (res.ok) {
       const data = await res.json();
       if (data.success && Array.isArray(data.jobs)) {
         return data.jobs;
       }
     }
-  } catch (err) {
-    console.warn('Failed to query jobs API:', err);
+  } catch {
+    // In standalone mobile/offline mode, persistent storage jobs serve as immediate offline cache
   }
   return [];
 }

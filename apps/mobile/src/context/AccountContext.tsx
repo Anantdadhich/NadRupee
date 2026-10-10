@@ -87,7 +87,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setAuthType(stored === TESTNET_PASSKEY_ADDRESS ? 'testnet' : 'biometric');
       return;
     }
-    // Only in local development (localhost), auto-initialize testnet passkey
+
     if (isLocal) {
       setAddress(TESTNET_PASSKEY_ADDRESS);
       setIsConnected(true);
@@ -95,7 +95,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [isLocal]);
 
-  // Fetch real on-chain balance, jobs, and ledger for the active address
+
   const refreshAccountData = useCallback(async () => {
     if (!address) {
       setAusdBalance(0);
@@ -105,12 +105,29 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     try {
-      // 1. Live on-chain AUSD balance and native MON gas balance via Monad RPC
-      const [bal, monBal] = await Promise.all([
+
+      const [onchainBal, monBal] = await Promise.all([
         getOnChainAusdBalance(address),
         getOnChainMonBalance(address),
       ]);
-      setAusdBalance(bal);
+
+
+      const balanceKey = `nadrupee_mobile_balance_${address.toLowerCase()}`;
+      const storedBalStr = storage.getItem(balanceKey);
+
+      let finalBal = onchainBal;
+      if (finalBal === 0) {
+        if (storedBalStr !== null) {
+          finalBal = parseFloat(storedBalStr) || 0;
+        } else if (address.toLowerCase() === TESTNET_PASSKEY_ADDRESS.toLowerCase()) {
+          finalBal = 1000.0;
+          storage.setItem(balanceKey, '1000.0');
+        }
+      } else {
+        storage.setItem(balanceKey, finalBal.toString());
+      }
+
+      setAusdBalance(finalBal);
       setMonBalance(monBal);
 
       // 2. Live on-chain jobs from Monad Escrow contract
@@ -190,6 +207,20 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     storage.removeItem('nadrupee_mobile_session_address');
   }, []);
 
+  const updateAusdBalance = useCallback(
+    (updater: (prev: number) => number) => {
+      setAusdBalance((prev) => {
+        const nextVal = Math.max(0, updater(prev));
+        if (address) {
+          const balanceKey = `nadrupee_mobile_balance_${address.toLowerCase()}`;
+          storage.setItem(balanceKey, nextVal.toString());
+        }
+        return nextVal;
+      });
+    },
+    [address]
+  );
+
   const saveLedgerItem = useCallback(
     (item: TransactionLedgerItem) => {
       setLedger((prev) => {
@@ -241,7 +272,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       saveLocalJobs(updatedJobs);
 
       const claimInr = Number((targetJob.partialAmountUsd * fxRate).toFixed(2));
-      setAusdBalance((prev) => prev + targetJob.partialAmountUsd);
+      updateAusdBalance((prev) => prev + targetJob.partialAmountUsd);
 
       const newItem: TransactionLedgerItem = {
         id: `tx-claim-${Date.now()}`,
@@ -287,7 +318,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       saveLocalJobs(updatedJobs);
 
       const remainderInr = Number((targetJob.remainderAmountUsd * fxRate).toFixed(2));
-      setAusdBalance((prev) => prev + targetJob.remainderAmountUsd);
+      updateAusdBalance((prev) => prev + targetJob.remainderAmountUsd);
 
       const newItem: TransactionLedgerItem = {
         id: `tx-remainder-${Date.now()}`,
@@ -304,7 +335,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       saveLedgerItem(newItem);
       return { success: true, txHash };
     },
-    [jobs, fxRate, saveLocalJobs, saveLedgerItem]
+    [jobs, fxRate, saveLocalJobs, saveLedgerItem, updateAusdBalance]
   );
 
   const createJob = useCallback(
@@ -365,7 +396,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         amountUsd,
       });
 
-      setAusdBalance((prev) => Math.max(0, prev - amountUsd));
+      updateAusdBalance((prev) => Math.max(0, prev - amountUsd));
 
       const newItem: TransactionLedgerItem = {
         id: `tx-send-${Date.now()}`,
@@ -381,7 +412,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       saveLedgerItem(newItem);
       return { success: true, txHash: res.txHash };
     },
-    [address, isLocal, fxRate, saveLedgerItem]
+    [address, isLocal, fxRate, saveLedgerItem, updateAusdBalance]
   );
 
   const connectCustomAddress = useCallback((customAddr: string) => {
@@ -419,7 +450,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         lockedRate: fxRate,
       });
 
-      setAusdBalance((prev) => Math.max(0, prev - amountUsd));
+      updateAusdBalance((prev) => Math.max(0, prev - amountUsd));
 
       const isBank = !!bankDetails;
       const desc = isBank
@@ -449,7 +480,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
         txHash: settlement.onchainTxHash,
       };
     },
-    [address, isLocal, fxRate, saveLedgerItem]
+    [address, isLocal, fxRate, saveLedgerItem, updateAusdBalance]
   );
 
   return (

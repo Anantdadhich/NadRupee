@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  TextInput,
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { useAccount } from '../context/AccountContext';
@@ -19,6 +20,7 @@ import {
   JobState,
   JOB_STATE_LABELS,
   ESCROW_CONTRACT_ADDRESS,
+  TESTNET_PASSKEY_ADDRESS,
   EscrowJobItem,
   TransactionLedgerItem,
 } from '../constants/config';
@@ -34,6 +36,9 @@ import {
   ChevronRight,
   Receipt,
   Filter,
+  Search,
+  X,
+  Zap,
 } from 'lucide-react-native';
 import { TabType } from '../components/BottomNav';
 
@@ -52,6 +57,7 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
     jobs,
     ledger,
     claimAdvance,
+    createJob,
     refreshAccountData,
   } = useAccount();
 
@@ -61,9 +67,11 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
   const [selectedJob, setSelectedJob] = useState<EscrowJobItem | null>(null);
   const [selectedLedgerItem, setSelectedLedgerItem] = useState<TransactionLedgerItem | null>(null);
   const [jobFilter, setJobFilter] = useState<JobFilterType>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [toast, setToast] = useState<ToastConfig | null>(null);
   const [claimingJobId, setClaimingJobId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isSeeding, setIsSeeding] = useState<boolean>(false);
 
   const inrBalance = (ausdBalance * fxRate).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
@@ -75,11 +83,47 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
   const completedCount = jobs.filter((j) => j.state === JobState.Completed).length;
 
   const displayedJobs = jobs.filter((j) => {
-    if (jobFilter === 'claimable') return j.state === JobState.Funded;
-    if (jobFilter === 'progress') return j.state === JobState.PartiallyReleased;
-    if (jobFilter === 'completed') return j.state === JobState.Completed;
+    if (jobFilter === 'claimable' && j.state !== JobState.Funded) return false;
+    if (jobFilter === 'progress' && j.state !== JobState.PartiallyReleased) return false;
+    if (jobFilter === 'completed' && j.state !== JobState.Completed) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchTitle = j.title?.toLowerCase().includes(q);
+      const matchId = String(j.id).toLowerCase().includes(q);
+      const matchClient = j.client?.toLowerCase().includes(q);
+      if (!matchTitle && !matchId && !matchClient) return false;
+    }
     return true;
   });
+
+  const handleSeedDemoEscrow = async () => {
+    setIsSeeding(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const targetFreelancer = address || TESTNET_PASSKEY_ADDRESS;
+      const res = await createJob(
+        'Smart Contract Security Audit & Verification',
+        targetFreelancer,
+        1000
+      );
+      if (res.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setToast({
+          type: 'success',
+          message: '⚡ Demo Escrow created ($1,000 AUSD)! Ready to test 80% instant claim.',
+        });
+        setJobFilter('all');
+        setSearchQuery('');
+      }
+    } catch (err: any) {
+      setToast({
+        type: 'error',
+        message: err?.message || 'Could not seed demo escrow.',
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -285,15 +329,49 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
               Jobs where your address is the designated freelancer. Funds are locked by the client before you begin work.
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={handleRefresh}
-            disabled={isRefreshing}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 8 }}
-            activeOpacity={0.7}
-          >
-            <RefreshCw size={11} color={Colors.mutedForeground} />
-            <Text style={styles.refreshText}>{isRefreshing ? '...' : 'Refresh'}</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 8 }}>
+            <TouchableOpacity
+              onPress={handleSeedDemoEscrow}
+              disabled={isSeeding}
+              style={styles.headerActionBtn}
+              activeOpacity={0.7}
+            >
+              <Zap size={11} color={Colors.mint} />
+              <Text style={styles.headerActionText}>{isSeeding ? '...' : '+ Demo Job'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleRefresh}
+              disabled={isRefreshing}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              activeOpacity={0.7}
+            >
+              <RefreshCw size={11} color={Colors.mutedForeground} />
+              <Text style={styles.refreshText}>{isRefreshing ? '...' : 'Refresh'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Live Search Bar */}
+        <View style={styles.searchContainer}>
+          <Search size={14} color={Colors.mutedForeground} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by deliverable title, ID, or client address..."
+            placeholderTextColor={Colors.mutedForeground}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <X size={14} color={Colors.mutedForeground} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Filter Pills */}
@@ -362,6 +440,22 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
               <Text style={styles.emptyText}>
                 When a client creates and funds a job in the Client Portal, it will appear here immediately.
               </Text>
+              <TouchableOpacity
+                style={styles.seedDemoBtn}
+                onPress={handleSeedDemoEscrow}
+                disabled={isSeeding}
+                activeOpacity={0.8}
+              >
+                {isSeeding ? (
+                  <ActivityIndicator size="small" color={Colors.mint} />
+                ) : (
+                  <>
+                    <Zap size={13} color={Colors.mint} />
+                    <Text style={styles.seedDemoBtnText}>⚡ Seed Demo Escrow ($1,000 AUSD)</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
               {onNavigateTab && (
                 <TouchableOpacity
                   style={styles.emptyActionBtn}
@@ -1099,6 +1193,61 @@ const styles = StyleSheet.create({
     color: Colors.night,
     fontSize: 12,
     fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 12,
+    height: 40,
+    marginBottom: 14,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: Colors.paper,
+    fontSize: 12,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    paddingVertical: 0,
+  },
+  seedDemoBtn: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    height: 38,
+    borderRadius: 999,
+    backgroundColor: 'rgba(56, 217, 169, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.3)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  seedDemoBtnText: {
+    color: Colors.mintBright,
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  headerActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(56, 217, 169, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  headerActionText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.mintBright,
     fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
 });

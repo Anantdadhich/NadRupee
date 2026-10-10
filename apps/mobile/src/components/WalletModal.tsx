@@ -15,6 +15,7 @@ import {
   MONAD_CHAIN_ID,
   RELAYER_ADDRESS,
   TESTNET_PASSKEY_ADDRESS,
+  AUSD_CONTRACT_ADDRESS,
 } from '../constants/config';
 import { getMonadAddressExplorerUrl } from '../services/monadRpc';
 import * as Haptics from 'expo-haptics';
@@ -31,6 +32,7 @@ import {
   Sparkles,
   ArrowRight,
   KeyRound,
+  QrCode,
 } from 'lucide-react-native';
 
 interface Props {
@@ -54,6 +56,7 @@ export const WalletModal: React.FC<Props> = ({ visible, onClose }) => {
   } = useAccount();
 
   const [copied, setCopied] = useState<boolean>(false);
+  const [copiedToken, setCopiedToken] = useState<boolean>(false);
   const [showImport, setShowImport] = useState<boolean>(false);
   const [customAddressInput, setCustomAddressInput] = useState<string>('');
   const [importError, setImportError] = useState<string | null>(null);
@@ -192,6 +195,78 @@ export const WalletModal: React.FC<Props> = ({ visible, onClose }) => {
                     <Text style={styles.relayerDesc}>
                       Relayer ({RELAYER_ADDRESS.slice(0, 6)}...{RELAYER_ADDRESS.slice(-4)}) sponsors all escrow and transfer transactions on Monad Testnet.
                     </Text>
+                  </View>
+                </View>
+
+                {/* Receive & Deposit AUSD Card */}
+                <View style={styles.receiveCard}>
+                  <View style={styles.receiveHeader}>
+                    <QrCode size={14} color={Colors.mint} />
+                    <Text style={styles.receiveTitle}>RECEIVE AGORA AUSD ON MONAD</Text>
+                  </View>
+
+                  <View style={styles.qrRow}>
+                    <View style={styles.qrGraphic}>
+                      <QrCode size={48} color={Colors.mintBright} />
+                      <Text style={styles.qrBadge}>MONAD</Text>
+                    </View>
+
+                    <View style={styles.qrDetails}>
+                      <Text style={styles.qrTitle}>Testnet Deposit Address</Text>
+                      <Text style={styles.qrDesc}>
+                        Fund via Monad Testnet EOA. All balances are tracked live.
+                      </Text>
+
+                      <TouchableOpacity
+                        style={styles.qrCopyBtn}
+                        onPress={handleCopy}
+                        activeOpacity={0.7}
+                      >
+                        {copied ? (
+                          <Check size={11} color={Colors.night} />
+                        ) : (
+                          <Copy size={11} color={Colors.night} />
+                        )}
+                        <Text style={styles.qrCopyBtnText}>
+                          {copied ? 'Copied to Clipboard' : 'Copy Full Address'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Faucet and Contract Tools */}
+                  <View style={styles.helperRow}>
+                    <TouchableOpacity
+                      style={styles.helperBtn}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        Linking.openURL('https://testnet.monad.xyz').catch(() => {});
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <ExternalLink size={10} color={Colors.mint} />
+                      <Text style={styles.helperBtnText}>Monad Faucet</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.helperBtn}
+                      onPress={async () => {
+                        await Clipboard.setStringAsync(AUSD_CONTRACT_ADDRESS);
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        setCopiedToken(true);
+                        setTimeout(() => setCopiedToken(false), 2000);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      {copiedToken ? (
+                        <Check size={10} color={Colors.mint} />
+                      ) : (
+                        <Copy size={10} color={Colors.paperDim} />
+                      )}
+                      <Text style={styles.helperBtnText}>
+                        {copiedToken ? 'Token Copied' : 'Copy AUSD Contract'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -613,5 +688,101 @@ const styles = StyleSheet.create({
     color: Colors.night,
     fontSize: 12,
     fontWeight: '700',
+  },
+  receiveCard: {
+    backgroundColor: 'rgba(56, 217, 169, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.18)',
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+  },
+  receiveHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  receiveTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.mintBright,
+    letterSpacing: 0.8,
+  },
+  qrRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  qrGraphic: {
+    width: 76,
+    height: 76,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrBadge: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: Colors.mintBright,
+    letterSpacing: 0.6,
+    marginTop: 2,
+  },
+  qrDetails: {
+    flex: 1,
+    gap: 4,
+  },
+  qrTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.paper,
+  },
+  qrDesc: {
+    fontSize: 10,
+    color: Colors.mutedForeground,
+    lineHeight: 14,
+  },
+  qrCopyBtn: {
+    marginTop: 6,
+    backgroundColor: Colors.mint,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+  },
+  qrCopyBtnText: {
+    color: Colors.night,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  helperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    paddingTop: 8,
+  },
+  helperBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  helperBtnText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.paperDim,
   },
 });

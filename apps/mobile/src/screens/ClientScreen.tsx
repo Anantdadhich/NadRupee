@@ -29,6 +29,9 @@ import {
   ArrowRight,
   ChevronRight,
   Send,
+  Search,
+  X,
+  Zap,
 } from 'lucide-react-native';
 import { TabType } from '../components/BottomNav';
 
@@ -53,6 +56,7 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
   const [sendAusdVisible, setSendAusdVisible] = useState<boolean>(false);
   const [sendAusdRecipient, setSendAusdRecipient] = useState<string>('');
   const [jobFilter, setJobFilter] = useState<ClientJobFilter>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [toast, setToast] = useState<ToastConfig | null>(null);
 
   const amountUsd = parseFloat(amountStr) || 0;
@@ -66,10 +70,25 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
   const completedCount = jobs.filter((j) => j.state === JobState.Completed).length;
 
   const displayedJobs = jobs.filter((j) => {
-    if (jobFilter === 'actionable') return j.state === JobState.PartiallyReleased;
-    if (jobFilter === 'completed') return j.state === JobState.Completed;
+    if (jobFilter === 'actionable' && j.state !== JobState.PartiallyReleased) return false;
+    if (jobFilter === 'completed' && j.state !== JobState.Completed) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchTitle = j.title?.toLowerCase().includes(q);
+      const matchId = String(j.id).toLowerCase().includes(q);
+      const matchFreelancer = j.freelancer?.toLowerCase().includes(q);
+      if (!matchTitle && !matchId && !matchFreelancer) return false;
+    }
     return true;
   });
+
+  const handleQuickDemoFill = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFreelancerInput('priya.eth');
+    setJobTitle('Full-Stack Web3 Mobile App & Monad Integration');
+    setAmountStr('1000');
+    setFormError(null);
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -198,6 +217,14 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
       <View style={styles.portalCard}>
         <View style={styles.portalCardHeader}>
           <Text style={styles.portalLabel}>CREATE & FUND ESCROW JOB</Text>
+          <TouchableOpacity
+            style={styles.demoFillBtn}
+            onPress={handleQuickDemoFill}
+            activeOpacity={0.7}
+          >
+            <Zap size={11} color={Colors.mint} />
+            <Text style={styles.demoFillText}>⚡ Quick Demo Fill</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Freelancer Input */}
@@ -326,6 +353,37 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
           <Text style={styles.sectionH2Em}>
             Created Escrows <Text style={styles.sectionH2White}>({jobs.length})</Text>
           </Text>
+          <TouchableOpacity
+            onPress={handleRefresh}
+            disabled={isRefreshing}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            activeOpacity={0.7}
+          >
+            <RefreshCw size={11} color={Colors.mutedForeground} />
+            <Text style={styles.refreshText}>{isRefreshing ? '...' : 'Refresh'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Live Search Bar */}
+        <View style={styles.searchContainer}>
+          <Search size={14} color={Colors.mutedForeground} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by title, ID, or freelancer address..."
+            placeholderTextColor={Colors.mutedForeground}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <X size={14} color={Colors.mutedForeground} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Filter Pills */}
@@ -374,14 +432,26 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
           {displayedJobs.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyTitle}>
-                {jobFilter === 'all'
+                {searchQuery.trim()
+                  ? 'No escrows match your search.'
+                  : jobFilter === 'all'
                   ? 'No escrows created yet.'
                   : `No ${jobFilter} escrows found.`}
               </Text>
               <Text style={styles.emptyText}>
-                Use the form above to fund your first deliverable on Monad Testnet.
+                {searchQuery.trim()
+                  ? 'Try searching with a different deliverable keyword, ID, or address.'
+                  : 'Use the form above or tap "Quick Demo Fill" to fund your first deliverable on Monad Testnet.'}
               </Text>
-              {onNavigateTab && (
+              {searchQuery.trim() ? (
+                <TouchableOpacity
+                  style={styles.emptyActionBtn}
+                  onPress={() => setSearchQuery('')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.emptyActionBtnText}>Clear Search</Text>
+                </TouchableOpacity>
+              ) : onNavigateTab ? (
                 <TouchableOpacity
                   style={styles.emptyActionBtn}
                   onPress={() => {
@@ -393,7 +463,7 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
                   <Text style={styles.emptyActionBtnText}>Switch to Freelancer Portal</Text>
                   <ArrowRight size={12} color={Colors.night} />
                 </TouchableOpacity>
-              )}
+              ) : null}
             </View>
           ) : (
             displayedJobs.map((job) => {
@@ -953,5 +1023,46 @@ const styles = StyleSheet.create({
   errorText: {
     color: Colors.danger,
     fontSize: 12,
+  },
+  demoFillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(56, 217, 169, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 217, 169, 0.25)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  demoFillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.mintBright,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 12,
+    height: 40,
+    marginBottom: 14,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: Colors.paper,
+    fontSize: 12,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
+    paddingVertical: 0,
+  },
+  refreshText: {
+    fontSize: 11,
+    color: Colors.mutedForeground,
+    fontFamily: 'Manrope, system-ui, -apple-system, sans-serif',
   },
 });
