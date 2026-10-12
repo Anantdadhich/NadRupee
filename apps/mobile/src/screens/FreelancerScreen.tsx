@@ -110,7 +110,7 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setToast({
           type: 'success',
-          message: '⚡ Demo Escrow created ($1,000 AUSD)! Ready to test 80% instant claim.',
+          message: 'Demo Escrow created ($1,000 AUSD)! Ready to test 80% instant claim.',
         });
         setJobFilter('all');
         setSearchQuery('');
@@ -451,7 +451,7 @@ export const FreelancerScreen: React.FC<Props> = ({ onNavigateTab }) => {
                 ) : (
                   <>
                     <Zap size={13} color={Colors.mint} />
-                    <Text style={styles.seedDemoBtnText}>⚡ Seed Demo Escrow ($1,000 AUSD)</Text>
+                    <Text style={styles.seedDemoBtnText}>Seed Demo Escrow ($1,000 AUSD)</Text>
                   </>
                 )}
               </TouchableOpacity>

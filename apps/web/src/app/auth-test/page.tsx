@@ -291,7 +291,7 @@ export default function AuthTestPage() {
                   }}
                   title="Instant 1-Click Passkey for Local & Testnet Testing"
                 >
-                  ⚡ Testnet Passkey
+                  <Zap size={13} className="inline mr-1 -mt-0.5" /> Testnet Passkey
                 </button>
               )}
               <button
@@ -569,8 +569,8 @@ export default function AuthTestPage() {
                   <div style={{ marginTop: "12px", background: "color-mix(in oklab, var(--paper) 3%, transparent)", borderRadius: "10px", padding: "12px", fontSize: "11px", wordBreak: "break-all" }}>
                     <div style={{ color: "var(--muted-foreground)", marginBottom: "4px" }}>Signature:</div>
                     <code style={{ color: "var(--paper)" }}>{signature}</code>
-                    <div style={{ marginTop: "8px", color: recoveredAddress?.toLowerCase() === address?.toLowerCase() ? "var(--mint-bright)" : "oklch(.75 .18 15)" }}>
-                      ✓ Verified: Recovered signer matches EOA address ({recoveredAddress?.slice(0, 8)}...)
+                    <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "6px", color: recoveredAddress?.toLowerCase() === address?.toLowerCase() ? "var(--mint-bright)" : "oklch(.75 .18 15)" }}>
+                      <Check size={14} /> Verified: Recovered signer matches EOA address ({recoveredAddress?.slice(0, 8)}...)
                     </div>
                   </div>
                 )}

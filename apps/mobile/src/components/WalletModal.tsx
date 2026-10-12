@@ -133,7 +133,10 @@ export const WalletModal: React.FC<Props> = ({ visible, onClose }) => {
                       {authType === 'testnet' ? 'Testnet Passkey' : 'Biometric Passkey'}
                     </Text>
                   </View>
-                  <Text style={styles.statusActive}>● Connected</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.mintBright }} />
+                    <Text style={styles.statusActive}>Connected</Text>
+                  </View>
                 </View>
 
                 {/* Address Row */}

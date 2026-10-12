@@ -223,7 +223,7 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
             activeOpacity={0.7}
           >
             <Zap size={11} color={Colors.mint} />
-            <Text style={styles.demoFillText}>⚡ Quick Demo Fill</Text>
+            <Text style={styles.demoFillText}>Quick Demo Fill</Text>
           </TouchableOpacity>
         </View>
 
@@ -239,9 +239,12 @@ export const ClientScreen: React.FC<Props> = ({ onNavigateTab }) => {
             autoCapitalize="none"
           />
           {KNOWN_FREELANCERS[freelancerInput.trim().toLowerCase()] && (
-            <Text style={styles.resolvedText}>
-              ✓ {KNOWN_FREELANCERS[freelancerInput.trim().toLowerCase()].slice(0, 16)}...
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+              <Check size={11} color={Colors.mint} />
+              <Text style={styles.resolvedText}>
+                {KNOWN_FREELANCERS[freelancerInput.trim().toLowerCase()].slice(0, 16)}...
+              </Text>
+            </View>
           )}
           <View style={styles.chipRow}>
             {Object.keys(KNOWN_FREELANCERS).map((handle) => {

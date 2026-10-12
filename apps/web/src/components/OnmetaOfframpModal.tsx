@@ -376,7 +376,7 @@ export function OnmetaOfframpModal({
     }
   };
 
-  // ⚡ 1-Click Instant Settle (Create order + Real Monad Settlement + IMPS Transfer in one tap)
+  // Instant 1-Click Settle (Create order + Real Monad Settlement + IMPS Transfer in one tap)
   const handleInstant1ClickSettle = async () => {
     if (!quote) return;
     setIsCreatingOrder(true);
@@ -534,7 +534,7 @@ export function OnmetaOfframpModal({
                   : "bg-[oklch(0.25_0.02_188)] text-[oklch(0.55_0.015_188)]"
                 }`}
             >
-              {kycStatus?.isKycVerified ? "✓" : "1"}
+              {kycStatus?.isKycVerified ? <Check size={11} strokeWidth={3} /> : "1"}
             </span>
             <span>1. KYC</span>
           </button>
@@ -557,7 +557,7 @@ export function OnmetaOfframpModal({
                   : "bg-[oklch(0.25_0.02_188)] text-[oklch(0.55_0.015_188)]"
                 }`}
             >
-              {bankAccounts.length > 0 && currentStep !== "bank" ? "✓" : "2"}
+              {bankAccounts.length > 0 && currentStep !== "bank" ? <Check size={11} strokeWidth={3} /> : "2"}
             </span>
             <span>2. Bank</span>
           </button>
@@ -580,7 +580,7 @@ export function OnmetaOfframpModal({
                   : "bg-[oklch(0.25_0.02_188)] text-[oklch(0.55_0.015_188)]"
                 }`}
             >
-              {quote && currentStep !== "quote" ? "✓" : "3"}
+              {quote && currentStep !== "quote" ? <Check size={11} strokeWidth={3} /> : "3"}
             </span>
             <span>3. Quote</span>
           </button>
@@ -601,7 +601,7 @@ export function OnmetaOfframpModal({
                   : "bg-[oklch(0.25_0.02_188)] text-[oklch(0.55_0.015_188)]"
                 }`}
             >
-              {activeOrder?.status === "completed" ? "✓" : "4"}
+              {activeOrder?.status === "completed" ? <Check size={11} strokeWidth={3} /> : "4"}
             </span>
             <span>4. Payout</span>
           </button>
@@ -1020,7 +1020,7 @@ export function OnmetaOfframpModal({
                 </div>
               )}
 
-              {/* ⚡ 1-Click Instant Settlement CTA */}
+              {/* 1-Click Instant Settlement CTA */}
               <div className="space-y-3 pt-2">
                 <button
                   onClick={handleInstant1ClickSettle}

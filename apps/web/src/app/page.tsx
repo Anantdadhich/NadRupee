@@ -11,6 +11,7 @@ import {
   Menu,
   ShieldCheck,
   Sparkles,
+  Zap,
   X,
 } from "lucide-react";
 
@@ -159,7 +160,7 @@ export default function HomePage() {
                     }}
                     title="Instant 1-Click Passkey for Local & Testnet Testing"
                   >
-                    ⚡ Testnet Passkey
+                    <Zap size={13} className="inline mr-1 -mt-0.5" /> Testnet Passkey
                   </button>
                 )}
                 <button

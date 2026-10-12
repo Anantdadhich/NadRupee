@@ -13,5 +13,8 @@
     "mobile:start": "npm run start --workspace=mobile",
     "mobile:ios": "npm run ios --workspace=mobile",
     "mobile:android": "npm run android --workspace=mobile"
+  },
+  "devDependencies": {
+    "next": "16.3.6"
   }
 }

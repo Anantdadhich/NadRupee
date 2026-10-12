@@ -21,6 +21,7 @@ import {
   Menu,
   XCircle,
   Send,
+  Zap,
 } from "lucide-react";
 import {
   ESCROW_CONTRACT_ADDRESS,
@@ -297,7 +298,7 @@ export default function ClientDashboardPage() {
                   }}
                   title="Instant 1-Click Passkey for Local & Testnet Testing"
                 >
-                  ⚡ Testnet Passkey
+                  <Zap size={13} className="inline mr-1 -mt-0.5" /> Testnet Passkey
                 </button>
               )}
               <button

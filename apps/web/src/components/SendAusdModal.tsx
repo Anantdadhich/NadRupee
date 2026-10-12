@@ -419,8 +419,8 @@ export function SendAusdModal({
                   ))}
                 </div>
                 {resolvedAddress && resolvedAddress !== recipientInput && (
-                  <div style={{ fontSize: "10px", color: "var(--mint)", marginTop: "4px", fontFamily: "monospace" }}>
-                    ✓ Resolves to: {resolvedAddress.slice(0, 10)}...{resolvedAddress.slice(-6)}
+                  <div style={{ fontSize: "10px", color: "var(--mint)", marginTop: "4px", fontFamily: "monospace", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <Check size={11} strokeWidth={2.5} /> Resolves to: {resolvedAddress.slice(0, 10)}...{resolvedAddress.slice(-6)}
                   </div>
                 )}
               </div>
@@ -491,8 +491,8 @@ export function SendAusdModal({
                       fontSize: "11px",
                     }}
                   >
-                    <div style={{ fontWeight: 600, color: gasMode === "gasless" ? "var(--mint-bright)" : "inherit" }}>
-                      ⚡ Gasless Relayer
+                    <div style={{ fontWeight: 600, color: gasMode === "gasless" ? "var(--mint-bright)" : "inherit", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Zap size={13} /> Gasless Relayer
                     </div>
                     <div style={{ fontSize: "9px", opacity: 0.6, marginTop: "2px" }}>
                       EIP-2612 Permit · 0 MON gas

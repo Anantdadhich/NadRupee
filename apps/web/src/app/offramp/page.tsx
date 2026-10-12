@@ -162,7 +162,7 @@ export default function OfframpPage() {
                     className="text-xs font-semibold px-3 py-2 rounded-xl bg-[oklch(0.73_0.105_169)]/15 border border-[oklch(0.73_0.105_169)] text-[oklch(0.73_0.105_169)] hover:brightness-110 transition-all cursor-pointer"
                     title="Instant 1-Click Passkey for Local & Testnet Testing"
                   >
-                    ⚡ Testnet Passkey
+                    <Zap size={13} className="inline mr-1 -mt-0.5" /> Testnet Passkey
                   </button>
                 )}
                 <button
