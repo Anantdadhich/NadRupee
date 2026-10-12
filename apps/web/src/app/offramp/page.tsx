@@ -107,16 +107,22 @@ export default function OfframpPage() {
             </Link>
             <div className="hidden md:flex items-center gap-6 text-xs font-semibold">
               <Link
+                href="/"
+                className="text-[oklch(0.75_0.015_188)] hover:text-white transition-colors"
+              >
+                Overview
+              </Link>
+              <Link
                 href="/freelancer"
                 className="text-[oklch(0.75_0.015_188)] hover:text-white transition-colors"
               >
-                Freelancer Dashboard
+                Freelancer Portal
               </Link>
               <Link
                 href="/client"
                 className="text-[oklch(0.75_0.015_188)] hover:text-white transition-colors"
               >
-                Client Dashboard
+                Client Portal
               </Link>
               <Link
                 href="/offramp"
@@ -128,7 +134,7 @@ export default function OfframpPage() {
                 href="/auth-test"
                 className="text-[oklch(0.75_0.015_188)] hover:text-white transition-colors"
               >
-                Passkey & Relayer
+                Protocol Lab
               </Link>
             </div>
           </div>
@@ -187,17 +193,20 @@ export default function OfframpPage() {
         {/* Mobile menu dropdown */}
         {menuOpen && (
           <div className="md:hidden px-4 pt-2 pb-4 space-y-2 border-t border-[oklch(0.22_0.02_188)] bg-[oklch(0.14_0.015_188)] text-sm">
+            <Link href="/" className="block py-2 text-[oklch(0.75_0.015_188)]">
+              Overview
+            </Link>
             <Link href="/freelancer" className="block py-2 text-[oklch(0.75_0.015_188)]">
-              Freelancer Dashboard
+              Freelancer Portal
             </Link>
             <Link href="/client" className="block py-2 text-[oklch(0.75_0.015_188)]">
-              Client Dashboard
+              Client Portal
             </Link>
             <Link href="/offramp" className="block py-2 text-[oklch(0.73_0.105_169)] font-bold">
               Instant INR Payout
             </Link>
             <Link href="/auth-test" className="block py-2 text-[oklch(0.75_0.015_188)]">
-              Passkey & Relayer
+              Protocol Lab
             </Link>
           </div>
         )}
@@ -615,6 +624,47 @@ export default function OfframpPage() {
         initialAmount={calcAmount}
         availableAusdBalance={ausdBalance}
       />
+
+      {/* 8. UNIFIED FOOTER */}
+      <footer className="footer">
+        <div className="footer-tab">
+          <Mark />
+        </div>
+        <div className="footer-lead">
+          Instant, escrow-backed
+          <br />
+          payments for Indian
+          <br />
+          freelancers — built on Monad.
+        </div>
+        <div>
+          <small>PRODUCT</small>
+          <Link href="/#funding">How it works</Link>
+          <Link href="/freelancer">For Freelancers</Link>
+          <Link href="/client">For Clients</Link>
+          <Link href="/offramp">Instant INR Payout</Link>
+          <Link href="/auth-test">Protocol Lab</Link>
+        </div>
+        <div>
+          <small>COMPANY</small>
+          <Link href="/#company">About</Link>
+          <a href="mailto:hello@nadrupee.xyz">Contact</a>
+        </div>
+        <div>
+          <small>RESOURCES</small>
+          <Link href="/#funding">Features</Link>
+          <Link href="/#insights">Infrastructure</Link>
+        </div>
+        <div>
+          <small>INSIGHTS</small>
+          <Link href="/#insights">NadRupee on Monad</Link>
+          <Link href="/#company">Freelancer stories</Link>
+        </div>
+        <div className="footer-meta">
+          <span>© 2026 NadRupee</span>
+          <a href="mailto:hello@nadrupee.xyz">hello@nadrupee.xyz</a>
+        </div>
+      </footer>
     </div>
   );
 }

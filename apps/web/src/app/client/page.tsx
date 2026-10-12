@@ -681,84 +681,136 @@ export default function ClientDashboardPage() {
                     key={job.jobId.toString()}
                     style={{
                       border: "1px solid color-mix(in oklab, var(--paper) 8%, transparent)",
-                      borderRadius: "12px",
-                      padding: "20px",
+                      borderRadius: "14px",
+                      padding: "22px",
                       background: "color-mix(in oklab, var(--paper) 3%, transparent)",
                       display: "flex",
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                      justifyContent: "space-between",
+                      flexDirection: "column",
                       gap: "16px",
                     }}
                   >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-                        <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--paper)" }}>
-                          {job.deliverableTitle || `Contract #${job.jobId.toString()}`}
-                        </span>
-                        <span className={isCompleted ? "badge-mint" : isPartiallyReleased ? "badge-mint" : isFunded ? "badge-muted" : "badge-danger"}>
-                          {JOB_STATE_LABELS[job.state]}
-                        </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "14px",
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+                          <span style={{ fontSize: "16px", fontWeight: 600, color: "var(--paper)" }}>
+                            {job.deliverableTitle || `Contract #${job.jobId.toString()}`}
+                          </span>
+                          <span className={isCompleted ? "badge-mint" : isPartiallyReleased ? "badge-mint" : isFunded ? "badge-muted" : "badge-danger"}>
+                            {JOB_STATE_LABELS[job.state]}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "11px", color: "var(--muted-foreground)", display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}>
+                          <span>
+                            Freelancer: <code style={{ color: "var(--paper)" }}>{job.freelancer.slice(0, 6)}...{job.freelancer.slice(-4)}</code>
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(job.freelancer)}
+                              style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", opacity: 0.7, marginLeft: "4px" }}
+                              title="Copy Freelancer Address"
+                            >
+                              <Copy size={10} />
+                            </button>
+                          </span>
+                          <span>Total: <strong style={{ color: "var(--paper)" }}>${job.amountFormatted} AUSD</strong></span>
+                          <span>80% Advance: <strong style={{ color: "var(--mint-bright)" }}>${job.partialAmountFormatted} AUSD</strong></span>
+                          <span>Remainder (20%): ${job.remainderAmountFormatted} AUSD</span>
+                        </div>
                       </div>
-                      <div style={{ fontSize: "11px", color: "var(--muted-foreground)", display: "flex", gap: "16px", flexWrap: "wrap" }}>
-                        <span>Freelancer: <code style={{ color: "var(--paper)" }}>{job.freelancer.slice(0, 6)}...{job.freelancer.slice(-4)}</code></span>
-                        <span>Total: <strong style={{ color: "var(--paper)" }}>${job.amountFormatted} AUSD</strong></span>
-                        <span>Remainder (20%): ${job.remainderAmountFormatted} AUSD</span>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                        {isPartiallyReleased && (
+                          <button
+                            onClick={() => handleReleaseRemainder(job.jobId)}
+                            disabled={actionJobId === job.jobId}
+                            className="action"
+                            style={{ minHeight: "34px", padding: "0 18px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                          >
+                            {actionJobId === job.jobId ? (
+                              <>
+                                <Loader2 size={12} className="animate-spin" /> Releasing...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 size={13} /> Approve & Release 20%
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        {isFunded && (
+                          <button
+                            onClick={() => handleCancelJob(job.jobId)}
+                            disabled={actionJobId === job.jobId}
+                            className="action action-dark"
+                            style={{ minHeight: "34px", padding: "0 16px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                          >
+                            {actionJobId === job.jobId ? (
+                              <>
+                                <Loader2 size={12} className="animate-spin" /> Cancelling...
+                              </>
+                            ) : (
+                              <>
+                                <XCircle size={13} /> Cancel Job
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        {isCompleted && (
+                          <span className="badge-mint" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <Check size={13} /> Completed & Settled
+                          </span>
+                        )}
+
+                        {job.txHash && (
+                          <a
+                            href={`https://testnet.monadexplorer.com/tx/${job.txHash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-link"
+                            title="View on Monad Explorer"
+                            style={{ fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "3px" }}
+                          >
+                            Explorer <ExternalLink size={11} />
+                          </a>
+                        )}
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      {isPartiallyReleased && (
-                        <button
-                          onClick={() => handleReleaseRemainder(job.jobId)}
-                          disabled={actionJobId === job.jobId}
-                          className="action"
-                          style={{ minHeight: "34px", padding: "0 18px" }}
-                        >
-                          {actionJobId === job.jobId ? (
-                            <>
-                              <Loader2 size={12} className="animate-spin" /> Releasing...
-                            </>
-                          ) : (
-                            "Approve & Release 20%"
-                          )}
-                        </button>
-                      )}
-
-                      {isFunded && (
-                        <button
-                          onClick={() => handleCancelJob(job.jobId)}
-                          disabled={actionJobId === job.jobId}
-                          className="action action-dark"
-                          style={{ minHeight: "34px", padding: "0 16px" }}
-                        >
-                          {actionJobId === job.jobId ? (
-                            <>
-                              <Loader2 size={12} className="animate-spin" /> Cancelling...
-                            </>
-                          ) : (
-                            "Cancel Job"
-                          )}
-                        </button>
-                      )}
-
-                      {isCompleted && (
-                        <span style={{ fontSize: "11px", color: "var(--mint-bright)", display: "flex", alignItems: "center", gap: "4px" }}>
-                          <Check size={13} /> Completed & Settled
+                    {/* Milestone Progression Stepper */}
+                    <div className="milestone-stepper">
+                      <div className={`milestone-step ${isFunded || isPartiallyReleased || isCompleted ? "completed" : "active"}`}>
+                        <span className="milestone-step-dot">
+                          {isFunded || isPartiallyReleased || isCompleted ? <Check size={11} /> : "1"}
                         </span>
-                      )}
+                        <span>1. Escrow Locked (100%)</span>
+                      </div>
 
-                      {job.txHash && (
-                        <a
-                          href={`https://testnet.monadexplorer.com/tx/${job.txHash}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-link"
-                          title="View on Monad Explorer"
-                        >
-                          Explorer <ExternalLink size={11} />
-                        </a>
-                      )}
+                      <div className={`milestone-divider ${isPartiallyReleased || isCompleted ? "completed" : ""}`} />
+
+                      <div className={`milestone-step ${isPartiallyReleased || isCompleted ? "completed" : isFunded ? "active" : ""}`}>
+                        <span className="milestone-step-dot">
+                          {isPartiallyReleased || isCompleted ? <Check size={11} /> : "2"}
+                        </span>
+                        <span>2. 80% Advance Claimed</span>
+                      </div>
+
+                      <div className={`milestone-divider ${isCompleted ? "completed" : ""}`} />
+
+                      <div className={`milestone-step ${isCompleted ? "completed" : isPartiallyReleased ? "active" : ""}`}>
+                        <span className="milestone-step-dot">
+                          {isCompleted ? <Check size={11} /> : "3"}
+                        </span>
+                        <span>3. 20% Milestone Remainder</span>
+                      </div>
                     </div>
                   </div>
                 );

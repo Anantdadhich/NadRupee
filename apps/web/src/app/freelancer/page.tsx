@@ -26,6 +26,8 @@ import {
   Building2,
   Lock,
   Send,
+  ArrowUpRight,
+  Banknote,
 } from "lucide-react";
 import {
   ESCROW_CONTRACT_ADDRESS,
@@ -569,9 +571,16 @@ export default function FreelancerDashboardPage() {
                   onClick={handleOpenCashout}
                   disabled={ausdBalance <= 0 || !isConnected}
                   className="action"
-                  style={{ minHeight: "34px", padding: "0 18px", opacity: ausdBalance <= 0 || !isConnected ? 0.4 : 1 }}
+                  style={{
+                    minHeight: "34px",
+                    padding: "0 18px",
+                    opacity: ausdBalance <= 0 || !isConnected ? 0.4 : 1,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
                 >
-                  Cash Out (OnMeta)
+                  <ArrowUpRight size={13} /> Instant Cash Out
                 </button>
               </div>
             </div>
@@ -691,73 +700,112 @@ export default function FreelancerDashboardPage() {
                     key={job.jobId.toString()}
                     style={{
                       border: "1px solid color-mix(in oklab, var(--paper) 8%, transparent)",
-                      borderRadius: "12px",
-                      padding: "20px",
+                      borderRadius: "14px",
+                      padding: "22px",
                       background: "color-mix(in oklab, var(--paper) 3%, transparent)",
                       display: "flex",
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                      justifyContent: "space-between",
+                      flexDirection: "column",
                       gap: "16px",
                     }}
                   >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-                        <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--paper)" }}>
-                          {job.deliverableTitle || `Contract #${job.jobId.toString()}`}
-                        </span>
-                        <span className={isCompleted || isPartiallyReleased ? "badge-mint" : isFunded ? "badge-muted" : "badge-danger"}>
-                          {JOB_STATE_LABELS[job.state]}
-                        </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "14px",
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+                          <span style={{ fontSize: "16px", fontWeight: 600, color: "var(--paper)" }}>
+                            {job.deliverableTitle || `Contract #${job.jobId.toString()}`}
+                          </span>
+                          <span className={isCompleted || isPartiallyReleased ? "badge-mint" : isFunded ? "badge-muted" : "badge-danger"}>
+                            {JOB_STATE_LABELS[job.state]}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "11px", color: "var(--muted-foreground)", display: "flex", gap: "16px", flexWrap: "wrap" }}>
+                          <span>Client: <code style={{ color: "var(--paper)" }}>{job.client.slice(0, 6)}...{job.client.slice(-4)}</code></span>
+                          <span>Total: <strong style={{ color: "var(--paper)" }}>₹{Number(totalInr).toLocaleString("en-IN")} ({job.amountFormatted} AUSD)</strong></span>
+                          <span>80% Advance: <strong style={{ color: "var(--mint-bright)" }}>₹{Number(advanceInr).toLocaleString("en-IN")}</strong></span>
+                        </div>
                       </div>
-                      <div style={{ fontSize: "11px", color: "var(--muted-foreground)", display: "flex", gap: "16px", flexWrap: "wrap" }}>
-                        <span>Client: <code style={{ color: "var(--paper)" }}>{job.client.slice(0, 6)}...{job.client.slice(-4)}</code></span>
-                        <span>Total: <strong style={{ color: "var(--paper)" }}>₹{Number(totalInr).toLocaleString("en-IN")} ({job.amountFormatted} AUSD)</strong></span>
-                        <span>80% Advance: ₹{Number(advanceInr).toLocaleString("en-IN")}</span>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                        {isFunded && (
+                          <button
+                            onClick={() => handleClaimAdvance(job.jobId)}
+                            disabled={claimingJobId === job.jobId}
+                            className="action"
+                            style={{ minHeight: "34px", padding: "0 18px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                          >
+                            {claimingJobId === job.jobId ? (
+                              <>
+                                <Loader2 size={12} className="animate-spin" /> Claiming...
+                              </>
+                            ) : (
+                              <>
+                                <Zap size={13} /> Claim 80% Instant Payout
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        {isPartiallyReleased && (
+                          <span className="badge-mint" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <CheckCircle2 size={13} /> 80% Advance Deposited
+                          </span>
+                        )}
+
+                        {isCompleted && (
+                          <span className="badge-mint" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <CheckCircle2 size={13} /> 100% Payout Finalized
+                          </span>
+                        )}
+
+                        {job.txHash && (
+                          <a
+                            href={`https://testnet.monadexplorer.com/tx/${job.txHash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-link"
+                            title="View on Monad Explorer"
+                            style={{ fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "3px" }}
+                          >
+                            Explorer <ExternalLink size={11} />
+                          </a>
+                        )}
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      {isFunded && (
-                        <button
-                          onClick={() => handleClaimAdvance(job.jobId)}
-                          disabled={claimingJobId === job.jobId}
-                          className="action"
-                          style={{ minHeight: "34px", padding: "0 18px" }}
-                        >
-                          {claimingJobId === job.jobId ? (
-                            <>
-                              <Loader2 size={12} className="animate-spin" /> Claiming...
-                            </>
-                          ) : (
-                            "Claim 80% Instant Payout"
-                          )}
-                        </button>
-                      )}
-
-                      {isPartiallyReleased && (
-                        <span style={{ fontSize: "11px", color: "var(--mint-bright)", display: "flex", alignItems: "center", gap: "4px" }}>
-                          <Check size={13} /> 80% Advance Deposited
+                    {/* Milestone Progression Stepper */}
+                    <div className="milestone-stepper">
+                      <div className={`milestone-step ${isFunded || isPartiallyReleased || isCompleted ? "completed" : "active"}`}>
+                        <span className="milestone-step-dot">
+                          {isFunded || isPartiallyReleased || isCompleted ? <Check size={11} /> : "1"}
                         </span>
-                      )}
+                        <span>1. Escrow Funded (100%)</span>
+                      </div>
 
-                      {isCompleted && (
-                        <span style={{ fontSize: "11px", color: "var(--mint-bright)", display: "flex", alignItems: "center", gap: "4px" }}>
-                          <Check size={13} /> 100% Payout Finalized
+                      <div className={`milestone-divider ${isPartiallyReleased || isCompleted ? "completed" : ""}`} />
+
+                      <div className={`milestone-step ${isPartiallyReleased || isCompleted ? "completed" : isFunded ? "active" : ""}`}>
+                        <span className="milestone-step-dot">
+                          {isPartiallyReleased || isCompleted ? <Check size={11} /> : "2"}
                         </span>
-                      )}
+                        <span>2. 80% Advance Claimed</span>
+                      </div>
 
-                      {job.txHash && (
-                        <a
-                          href={`https://testnet.monadexplorer.com/tx/${job.txHash}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-link"
-                          title="View on Monad Explorer"
-                        >
-                          Explorer <ExternalLink size={11} />
-                        </a>
-                      )}
+                      <div className={`milestone-divider ${isCompleted ? "completed" : ""}`} />
+
+                      <div className={`milestone-step ${isCompleted ? "completed" : isPartiallyReleased ? "active" : ""}`}>
+                        <span className="milestone-step-dot">
+                          {isCompleted ? <Check size={11} /> : "3"}
+                        </span>
+                        <span>3. 20% Final Sign-off</span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -792,25 +840,67 @@ export default function FreelancerDashboardPage() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "14px 0",
+                    padding: "16px 0",
                     borderBottom: "1px solid color-mix(in oklab, var(--paper) 6%, transparent)",
                     fontSize: "12px",
-                    gap: "12px",
+                    gap: "14px",
                     flexWrap: "wrap",
                   }}
                 >
-                  <div>
-                    <div style={{ fontWeight: 600, color: "var(--paper)" }}>{item.description}</div>
-                    <div style={{ fontSize: "10px", color: "var(--muted-foreground)", marginTop: "2px" }}>
-                      {item.timestamp} {item.referenceCode && `· Ref: ${item.referenceCode}`}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <span
+                        className={
+                          item.type === "Payment received"
+                            ? "tx-pill tx-pill-credit"
+                            : item.type === "Cash out"
+                            ? "tx-pill tx-pill-debit"
+                            : "tx-pill tx-pill-funded"
+                        }
+                      >
+                        {item.type === "Payment received" ? (
+                          <>
+                            <Zap size={10} /> Payment
+                          </>
+                        ) : item.type === "Cash out" ? (
+                          <>
+                            <ArrowUpRight size={10} /> Bank Cashout (IMPS)
+                          </>
+                        ) : (
+                          <>
+                            <Coins size={10} /> Escrow Funded
+                          </>
+                        )}
+                      </span>
+                      <span style={{ fontWeight: 600, color: "var(--paper)" }}>{item.description}</span>
+                    </div>
+
+                    <div style={{ fontSize: "11px", color: "var(--muted-foreground)", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                      <span>{item.timestamp}</span>
+                      {item.referenceCode && (
+                        <span>
+                          Ref: <code style={{ color: "var(--paper)" }}>{item.referenceCode}</code>
+                        </span>
+                      )}
+                      {item.onchainTxHash && item.onchainTxHash !== "0x0" && (
+                        <a
+                          href={`https://testnet.monadexplorer.com/tx/${item.onchainTxHash}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-link"
+                          style={{ fontSize: "10px", display: "inline-flex", alignItems: "center", gap: "3px" }}
+                        >
+                          Explorer <ExternalLink size={10} />
+                        </a>
+                      )}
                     </div>
                   </div>
 
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 600, color: item.isCredit ? "var(--mint-bright)" : "var(--paper)" }}>
+                    <div style={{ fontWeight: 600, fontSize: "14px", color: item.isCredit ? "var(--mint-bright)" : "var(--paper)" }}>
                       {item.isCredit ? "+" : "-"}₹{item.amountInr.toLocaleString("en-IN")}
                     </div>
-                    <div style={{ fontSize: "10px", color: "var(--muted-foreground)" }}>
+                    <div style={{ fontSize: "11px", color: "var(--muted-foreground)" }}>
                       ${item.amountUsd.toFixed(2)} AUSD
                     </div>
                   </div>
