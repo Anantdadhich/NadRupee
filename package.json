@@ -16,5 +16,8 @@
   },
   "devDependencies": {
     "next": "16.3.6"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
