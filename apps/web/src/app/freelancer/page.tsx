@@ -11,6 +11,7 @@ import {
   Menu,
   ShieldCheck,
   Sparkles,
+  Zap,
   X,
   ExternalLink,
   Copy,
@@ -428,7 +429,7 @@ export default function FreelancerDashboardPage() {
                   }}
                   title="Instant 1-Click Passkey for Local & Testnet Testing"
                 >
-                  Testnet Passkey
+                  <Zap size={13} className="inline mr-1 -mt-0.5" /> Testnet Passkey
                 </button>
               )}
               <button
