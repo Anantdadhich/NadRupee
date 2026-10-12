@@ -43,7 +43,7 @@ All smart contracts are deployed and verified on **Monad Testnet (Chain ID: `101
 
 ---
 
-##  Getting Started
+## Getting Started
 
 ### Prerequisites
 

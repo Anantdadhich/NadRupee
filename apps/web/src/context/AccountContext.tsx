@@ -56,10 +56,10 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   // Sync stored credential ID from localStorage on mount and auto-restore if active in local dev
   useEffect(() => {
     const isLocal = isLocalOrTestEnvironment();
-    setShowTestnetPasskey(isLocal);
+    if (isLocal) setShowTestnetPasskey(true);
 
     const credId = getStoredCredentialId();
-    setStoredCredentialIdState(credId);
+    if (credId) setStoredCredentialIdState(credId);
     if (isLocal && credId === TESTNET_PASSKEY_CREDENTIAL_ID) {
       try {
         const session = getTestnetDevPasskeySession();
